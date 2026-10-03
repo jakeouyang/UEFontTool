@@ -1,0 +1,26 @@
+# Deliberate allowlist: this workspace also contains private local experiments.
+/*
+!/.gitignore
+!/.gitattributes
+!/LICENSE
+!/README.md
+!/README.en.md
+!/THIRD_PARTY.md
+!/CHANGELOG.md
+!/UEFontTool/
+!/scripts/
+!/.github/
+!/docs/
+**/bin/
+**/obj/
+**/data/
+**/*.user
+**/*.pdb
+**/*.local
+**/settings.json
+**/*.pak
+**/*.utoc
+**/*.ucas
+**/*.sig
+**/oo2core*.dll
+**/.DS_Store
