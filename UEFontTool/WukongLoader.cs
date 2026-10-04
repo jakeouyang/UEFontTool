@@ -1,5 +1,4 @@
 using Microsoft.Win32;
-using System.Diagnostics;
 using System.Text.RegularExpressions;
 
 namespace UEFontTool;
@@ -47,29 +46,10 @@ public static class WukongLoader
         string? options = LaunchOptions();
         bool present = options?.Split(' ', StringSplitOptions.RemoveEmptyEntries).Any(v => v.Equals("-fileopenlog", StringComparison.OrdinalIgnoreCase)) == true;
         string bin = Path.Combine(Directory.GetParent(FontService.LocatePaks(game))!.Parent!.FullName, "Binaries", "Win64");
-        string installed = Path.Combine(bin, "dsound.dll"), bypassLog = Path.Combine(bin, "bitfix.txt");
-        if (File.Exists(installed) && File.Exists(Path.Combine(bin, "bitfix", "sig.lua")))
-        {
-            log("发现 dsound.dll 与 bitfix/sig.lua；未验证其版本或来源 / Loader files found; their version and origin are not verified.");
-            if (File.Exists(bypassLog))
-            {
-                string recent = File.ReadAllText(bypassLog);
-                if (recent.Contains("writing C3") && recent.Contains("done executing")) log("bitfix 历史日志包含补丁写入；不证明本次启动或字体已生效 / Historical log records patch execution, not current-launch or font success.");
-            }
-        }
-        log(present ? "Steam 已设置 -fileopenlog / Steam launch flag is present." : options == null ? "无法读取当前账号的悟空启动参数 / Current Steam launch options unavailable." : "Steam 尚未设置 -fileopenlog / Steam launch flag is missing.");
-        log("悟空无签名 PAK 需要 -fileopenlog 或有效的签名加载补丁；复制原版 .sig 不会给新包签名。 / Unsigned PAKs need the launch flag or a working signature bypass.");
-        log("可点击“悟空测试启动”，或在 Steam 属性中添加 -fileopenlog。 / Use Wukong test launch, or add -fileopenlog in Steam Properties.");
+        if (File.Exists(Path.Combine(bin, "dsound.dll")) && File.Exists(Path.Combine(bin, "bitfix", "sig.lua")))
+            log("检测到旧版签名绕过；当前版本游戏原生加载正确格式的 PAK，旧特征码补丁可能失配，建议移除 / Legacy signature bypass detected; current builds load correctly formatted PAKs natively and stale pattern patches may mismatch, so removing it is recommended.");
+        if (present) log("Steam 仍设置 -fileopenlog；当前发行版已不实现该参数，可移除 / -fileopenlog is still set; the current shipping build no longer implements it and it can be removed.");
+        log("构建时已自动转换为悟空运行时布局（自定义 footer 与条目对齐），无需其他加载条件 / Builds are converted automatically to the Wukong runtime layout (custom footer and entry alignment); no extra loading requirements.");
         log("参考 / Reference: " + Guide);
-    }
-    public static void Launch(string game, Action<string> log)
-    {
-        if (FontService.Profile(FontService.LocatePaks(game)) != "b1") throw new InvalidOperationException("此测试入口仅用于悟空 / This launcher is only for Wukong.");
-        if (Process.GetProcessesByName("b1-Win64-Shipping").Length != 0) throw new IOException("请先正常退出游戏再测试 / Exit the game normally before testing.");
-        string steam = Path.Combine(SteamPath() ?? throw new FileNotFoundException("Steam installation not found."), "steam.exe");
-        var start = new ProcessStartInfo(steam) { UseShellExecute = false, CreateNoWindow = true };
-        start.ArgumentList.Add("-applaunch"); start.ArgumentList.Add("2358720"); start.ArgumentList.Add("-fileopenlog");
-        Process.Start(start);
-        log("已请求 Steam 带 -fileopenlog 启动；请检查游戏内字体。未修改永久启动设置。 / Requested a test launch; permanent Steam settings unchanged.");
     }
 }

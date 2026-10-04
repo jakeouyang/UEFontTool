@@ -53,6 +53,11 @@ public static class SelfTest
             Assert(System.Text.Encoding.UTF8.GetString(new WukongPak(dragon, new() { fixtureKey }, true).Extract("font.ufont")) == "test payload", "Decode DragonSword encrypted and masked indexes and extract payload");
             Reject(() => new WukongPak(dragon, new(), true), "Reject missing DragonSword AES key");
             Reject(() => new WukongPak(dragon, new() { new byte[32] }, true), "Reject wrong DragonSword AES key");
+            string wukong = Path.Combine(root, "wukong.pak");
+            File.Copy(artifact, wukong, true);
+            WukongPakWriter.Convert(wukong);
+            Assert(WukongPak.Detect(wukong), "Convert to the Wukong footer layout");
+            Assert(System.Text.Encoding.UTF8.GetString(new WukongPak(wukong, new()).Extract("font.ufont")) == "test payload", "Round-trip the Wukong layout with runtime data offsets");
             var scan = new ScanReport { Game = Path.Combine(root, "game"), Paks = paks };
             scan.Fonts["font.ufont"] = new();
             scan.Fonts["b1/Content/Fonts/Font_SC_Regular.ufont"] = new();

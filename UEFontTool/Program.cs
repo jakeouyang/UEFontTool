@@ -28,7 +28,6 @@ internal static class Program
                     File.WriteAllText(output, JsonSerializer.Serialize(manifest, FontService.Json)); break;
                 case ["restore", var game]: FontService.Restore(game, Console.WriteLine); break;
                 case ["diagnose-wukong", var game]: WukongLoader.Diagnose(game, Console.WriteLine); break;
-                case ["launch-wukong", var game]: WukongLoader.Launch(game, Console.WriteLine); break;
                 case ["--render-ui", var output, .. var options]:
                     using (var form = new MainForm())
                     {

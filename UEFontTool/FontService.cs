@@ -165,15 +165,27 @@ public static class FontService
             }
             manifest.Artifact = Path.Combine(output, "zz_UEFontTool_P.pak");
             manifest.OutputPakVersion = PakTools.OldestVersion(targets.SelectMany(t => scan.Fonts[t]).Select(s => s.Version));
+            bool wukong = targets.SelectMany(t => scan.Fonts[t]).Any(s => s.Wukong);
             log("正在打包并回读校验 / Packing and verifying…");
-            log("输出 PAK 版本 / Output PAK version: " + manifest.OutputPakVersion);
+            log("输出 PAK 版本 / Output PAK version: " + manifest.OutputPakVersion + (wukong ? "（悟空运行时布局 / Wukong runtime layout）" : ""));
             var arguments = new List<string> { "pack", "--version", manifest.OutputPakVersion };
-            if (Array.IndexOf(PakTools.Versions, manifest.OutputPakVersion) >= 3) arguments.AddRange(new[] { "--compression", "Zlib" });
+            if (!wukong && Array.IndexOf(PakTools.Versions, manifest.OutputPakVersion) >= 3) arguments.AddRange(new[] { "--compression", "Zlib" });
             arguments.AddRange(new[] { stage, manifest.Artifact });
             PakTools.Run(arguments.ToArray());
-            if (!PakTools.List(manifest.Artifact).Order().SequenceEqual(targets.Order())) throw new InvalidDataException("PAK path verification failed.");
-            foreach (var target in targets)
-                if (PakTools.Hash(PakTools.Run("get", manifest.Artifact, target)) != replacement.Info.Sha256) throw new InvalidDataException("PAK font hash verification failed.");
+            if (wukong)
+            {
+                WukongPakWriter.Convert(manifest.Artifact);
+                var reader = new WukongPak(manifest.Artifact, keys);
+                if (!reader.Entries.Keys.Order().SequenceEqual(targets.Order())) throw new InvalidDataException("PAK path verification failed.");
+                foreach (var target in targets)
+                    if (PakTools.Hash(reader.Extract(target)) != replacement.Info.Sha256) throw new InvalidDataException("PAK font hash verification failed.");
+            }
+            else
+            {
+                if (!PakTools.List(manifest.Artifact).Order().SequenceEqual(targets.Order())) throw new InvalidDataException("PAK path verification failed.");
+                foreach (var target in targets)
+                    if (PakTools.Hash(PakTools.Run("get", manifest.Artifact, target)) != replacement.Info.Sha256) throw new InvalidDataException("PAK font hash verification failed.");
+            }
             manifest.ArtifactSha256 = PakTools.HashFile(manifest.Artifact);
             WriteManifest(manifest);
             log("已生成 / Created: " + manifest.Artifact);

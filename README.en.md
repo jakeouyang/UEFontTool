@@ -25,7 +25,7 @@ Settings, output and installation records live in the adjacent `data/` folder. E
 | --- | --- |
 | Standalone `.ttf`, `.otf`, `.ufont` in standard PAKs | Scan, extract, replace, pack, and verify by reading back |
 | Encrypted PAKs | Requires a user-supplied matching AES key; custom formats may need an adapter |
-| Black Myth: Wukong custom PAKs | Adapter for the observed v11 layout; runtime loading remains game-specific |
+| Black Myth: Wukong custom PAKs | Footer and entry layout adapter with automatic output conversion, confirmed in game (uncompressed entries) |
 | DragonSword: Awakening custom PAKs | Adapter for observed v101 encrypted/masked indexes; generates standard V11 PAKs |
 | Engine fallback fonts | Optional manual selection; excluded from automatic matching |
 | Embedded FontFace / IoStore resource rewriting | **Not implemented** |
@@ -49,7 +49,7 @@ The observed Chinese fonts are named `NotoSansTC`; automatic matching therefore 
 
 The answer depends on where the font bytes live. Standalone PAK fonts can often be overridden by a PAK. Embedded FontFace bytes require resource rewriting. IoStore resources require compatible containers and dependency handling. Offline font atlases also involve textures and glyph metrics.
 
-Signature checking is separate. Copying an original `.sig` does not sign a changed mod. Signature Bypass and `-fileopenlog` are game/version-specific approaches, not universal solutions. This project includes no game AES keys, game fonts, or bypass DLLs, and does not automatically modify game executables. The Wukong test-launch link only asks Steam to start with `-fileopenlog`; it does not change permanent launch settings.
+Signature checking is separate. Copying an original `.sig` does not sign a changed mod. Wukong output is converted automatically to the game's runtime layout (custom footer and entry alignment); the current Steam build needs neither `-fileopenlog` (no longer implemented in the shipping build) nor third-party signature bypasses, and detected legacy bypasses are best removed. This project includes no game AES keys, game fonts, or bypass DLLs, and does not automatically modify game executables.
 
 ### Oodle extraction fails
 

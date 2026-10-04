@@ -247,7 +247,7 @@ public sealed class WukongPak
         {
             long stored = encryptPayload ? (length + 15) & ~15L : length;
             var data = Decrypt(At(position, stored), encryptPayload).AsSpan(0, checked((int)length)).ToArray(); position += stored;
-            int expected = checked((int)Math.Min(rawSize - output.Length, blocks == 1 ? rawSize : blockSize));
+            int expected = checked((int)Math.Min(rawSize - output.Length, blocks <= 1 ? rawSize : blockSize));
             if (method == "Oodle") data = Oodle(data, expected);
             else if (method is "Zlib" or "Gzip")
             {

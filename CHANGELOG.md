@@ -1,5 +1,16 @@
 # Changelog / 更新记录
 
+## v0.5.0
+
+- Wukong: convert packed output to the game's runtime layout (custom 223-byte footer plus a pad byte per entry so data starts at the runtime's 54-byte local header), then verify by reading the artifact back through the Wukong adapter. Confirmed working in game on the current Steam build (2026-10); no launch flags or signature bypass required.
+- Wukong: stop compressing output with Zlib; the observed runtime only loads Oodle payloads from its own paks and the converted layout is validated for uncompressed entries.
+- Wukong: the adapter can now extract uncompressed (zero-block) entries; diagnostics no longer recommend `-fileopenlog` or signature bypasses (the shipping build no longer implements the flag, and legacy bypass patterns may mismatch after game updates).
+- Remove the Wukong test-launch entry point (UI link and `launch-wukong` CLI); launch the game directly when verifying manually.
+- 悟空：打包输出自动转换为游戏运行时布局（自定义 223 字节 footer，并为每个条目补 1 字节使数据从运行时的 54 字节本地头开始），再用悟空适配器回读校验。已在当前 Steam 版本游戏内验证生效，无需启动参数或签名绕过。
+- 悟空：输出不再使用 Zlib 压缩；已验证的转换为未压缩条目布局。
+- 悟空：适配器支持提取未压缩（零块）条目；诊断不再建议 `-fileopenlog` 或签名绕过（当前发行版已不实现该参数，旧绕过特征码在游戏更新后可能失配）。
+- 移除“悟空测试启动”入口（界面链接与 `launch-wukong` 命令）；手动验证时直接启动游戏即可。
+
 ## v0.4.0
 
 - Align language and GitHub header buttons; replace the former social link with the project repository.

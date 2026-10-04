@@ -116,13 +116,10 @@ public sealed class MainForm : Form
         logPanel.Controls.Add(log); layout.Controls.Add(logPanel, 0, 9);
         var hint = Label(); hint.ForeColor = Color.Gray; hint.Font = new Font("Microsoft YaHei UI", 9);
         hint.Name = "limit"; layout.Controls.Add(hint, 0, 10);
-        var footer = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 3, Margin = Padding.Empty };
-        footer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100)); footer.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 220)); footer.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 80));
+        var footer = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, Margin = Padding.Empty };
+        footer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100)); footer.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 80));
         footer.Controls.Add(status);
-        var launch = new LinkLabel { Name = "wukongLaunch", Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleRight, LinkColor = Red, ActiveLinkColor = Color.Silver, VisitedLinkColor = Red };
-        launch.LinkClicked += (_, _) => { try { WukongLoader.Launch(game.Text.Trim(), Append); } catch (Exception ex) { Append(ex.Message); } };
-        footer.Controls.Add(launch); disabled.Add(launch);
-        var version = Label(); version.Text = "v0.4"; version.ForeColor = Color.Gray; version.TextAlign = ContentAlignment.MiddleRight; footer.Controls.Add(version);
+        var version = Label(); version.Text = "v0.5"; version.ForeColor = Color.Gray; version.TextAlign = ContentAlignment.MiddleRight; footer.Controls.Add(version);
         layout.Controls.Add(footer, 0, 11);
         disabled.AddRange(new Control[] { game, font, filter, gameBrowse, fontBrowse, simplified, traditional, english, targets, advanced, scanButton, buildButton, installButton, restoreButton, language, showEngine, remember });
         try
@@ -137,10 +134,9 @@ public sealed class MainForm : Form
         catch (Exception ex) when (ex is IOException or JsonException) { Append("设置读取失败 / Could not read saved settings: " + ex.Message); }
         game.AutoCompleteMode = AutoCompleteMode.SuggestAppend; game.AutoCompleteSource = AutoCompleteSource.CustomSource;
         if (!string.IsNullOrWhiteSpace(game.Text)) game.AutoCompleteCustomSource.Add(game.Text);
-        game.TextChanged += (_, _) => { report = null; chosen.Clear(); FillTargets(); UpdateLaunchVisibility(); };
+        game.TextChanged += (_, _) => { report = null; chosen.Clear(); FillTargets(); };
         FormClosing += (_, e) => { if (busy) { e.Cancel = true; Append(T("Please wait until the operation finishes.", "请等待当前操作完成。")); } };
         SelectLanguage(true);
-        UpdateLaunchVisibility();
         Append(T("Select a game and font, then scan. Suggested targets can be adjusted manually.", "选择游戏与新字体，先扫描；可手动调整自动勾选的目标。"));
         Append(T("Existing font mods are checked before installation. Build-only preserves the test package.", "安装前检查现有字体 Mod 冲突；“仅生成”可保留测试包供检查。"));
     }
@@ -202,16 +198,8 @@ public sealed class MainForm : Form
         var limit = Controls.Find("limit", true).First();
         limit.Text = T("Output depends on font storage. This version replaces standalone PAK fonts; see the scan log for limitations.", "按字体实际存储方式决定输出；本版可替换 PAK 独立字体，其他类型请查看扫描日志。");
         status.Text = T("Ready", "就绪");
-        Controls.Find("wukongLaunch", true).First().Text = T("Wukong test launch", "悟空测试启动");
     }
     void Append(string text) { log.AppendText($"[{DateTime.Now:HH:mm:ss}] {text}{Environment.NewLine}"); log.ScrollToCaret(); }
-    void UpdateLaunchVisibility()
-    {
-        bool visible;
-        try { visible = FontService.Profile(FontService.LocatePaks(game.Text.Trim())) == "b1"; }
-        catch { visible = false; }
-        Controls.Find("wukongLaunch", true).First().Visible = visible;
-    }
     public void LoadPreview(string path)
     {
         var loaded = JsonSerializer.Deserialize<ScanReport>(File.ReadAllText(path))!;
