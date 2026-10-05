@@ -16,6 +16,7 @@ Download `UEFontTool-vVERSION-win-x64.zip` from **Releases**, extract the comple
 4. Adjust the targets manually if needed. With exactly one language selected, click **Save mapping**. Right-click it to restore automatic matching. Engine fonts are hidden by default. Filtering does not clear selections; the hidden selection count is shown.
 5. **Build only** creates and reads back the package. **Build and install** additionally checks detected mod conflicts.
 6. **Restore font** removes only an installation matching this tool's recorded path and hash.
+7. **Export fonts** saves checked originals as real TTF/OTF/TTC files so languages and typefaces can be identified first.
 
 Settings, output and installation records live in the adjacent `data/` folder. Each build includes a PAK and `manifest.json` with target paths, hashes, character coverage differences, and output PAK version. Keep installation records for restoration.
 
@@ -89,6 +90,7 @@ Pushes to `main`, pull requests, and manual workflow runs build/test the applica
 UEFontTool.exe scan "GAME_DIR" "scan.json"
 UEFontTool.exe build "GAME_DIR" "FONT.ttf" "build.json" "Game/Content/Fonts/Font.ufont"
 UEFontTool.exe restore "GAME_DIR"
+UEFontTool.exe export "GAME_DIR" "OUTPUT_DIR" [targets...]
 UEFontTool.exe diagnose-wukong "GAME_DIR"
 ```
 

@@ -117,10 +117,54 @@ public static class FontService
             catch (Exception ex) { result.ModErrors.Add(Path.GetFileName(pak) + ": " + ex.Message); }
         }
     }
-    static (FontInfo Info, HashSet<int> Map) InspectFont(byte[] bytes)
+    static (FontInfo Info, HashSet<int> Map, int Base) InspectFont(byte[] bytes)
     {
         var font = new SfntFont(bytes);
-        return (new(font.Family, font.Codepoints.Count, PakTools.Hash(bytes), bytes.Length), font.Codepoints);
+        return (new(font.Family, font.Codepoints.Count, PakTools.Hash(bytes), bytes.Length), font.Codepoints, font.Base);
+    }
+    static byte[] WrapSizePrefixed(byte[] font)
+    {
+        var payload = new byte[font.Length + 8];
+        BitConverter.GetBytes((uint)font.Length).CopyTo(payload, 0);
+        font.CopyTo(payload, 4);
+        return payload;
+    }
+    static string FontExtension(byte[] font)
+    {
+        if (font.Length < 4) return ".ufont";
+        if (font[0] == 0x4F && font[1] == 0x54 && font[2] == 0x54 && font[3] == 0x4F) return ".otf";
+        if (font[0] == 0x74 && font[1] == 0x74 && font[2] == 0x63 && font[3] == 0x66) return ".ttc";
+        if (font[0] == 0x00 && font[1] == 0x01 && font[2] == 0x00 && font[3] == 0x00) return ".ttf";
+        if (font[0] == 0x74 && font[1] == 0x72 && font[2] == 0x75 && font[3] == 0x65) return ".ttf";
+        return ".ufont";
+    }
+    public static int Export(ScanReport scan, string[] selection, string output, string? keyFile, Action<string> log)
+    {
+        var keys = PakTools.Keys(keyFile);
+        var readers = new Dictionary<string, WukongPak>();
+        var used = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        int exported = 0;
+        foreach (var target in selection.Select(PakTools.SafePath).Distinct(StringComparer.OrdinalIgnoreCase).Order())
+        {
+            if (!scan.Fonts.TryGetValue(target, out var sources)) throw new InvalidDataException("Target absent from scan: " + target);
+            foreach (var source in sources)
+            {
+                byte[] original;
+                if (source.Wukong || source.DragonSword)
+                {
+                    if (!readers.TryGetValue(source.Pak, out var reader)) readers[source.Pak] = reader = new WukongPak(source.Pak, keys, source.DragonSword);
+                    original = reader.Extract(target);
+                }
+                else original = PakTools.ReadWithKeys(keys, "get", source.Pak, target);
+                byte[] font = original[SfntFont.LooseFontBase(original)..];
+                string name = Path.GetFileNameWithoutExtension(target), extension = FontExtension(font), candidate = name + extension;
+                for (int attempt = 2; !used.Add(candidate); attempt++) candidate = $"{name} ({attempt}){extension}";
+                File.WriteAllBytes(Path.Combine(output, candidate), font);
+                log($"已导出 / Exported: {candidate}（{font.Length:N0} 字节 / bytes）");
+                exported++;
+            }
+        }
+        return exported;
     }
     public static BuildManifest Build(ScanReport scan, string fontFile, string[] targets, string? keyFile, Action<string> log)
     {
@@ -132,6 +176,7 @@ public static class FontService
         var manifest = new BuildManifest { Game = scan.Game, Targets = targets, Replacement = replacement.Info };
         var keys = PakTools.Keys(keyFile);
         var readers = new Dictionary<string, WukongPak>();
+        var prefixed = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
         foreach (var target in targets)
         {
             if (!scan.Fonts.TryGetValue(target, out var sources)) throw new InvalidDataException("Target absent from scan: " + target);
@@ -146,6 +191,7 @@ public static class FontService
                 }
                 else original = PakTools.ReadWithKeys(keys, "get", source.Pak, target);
                 var inspected = InspectFont(original);
+                prefixed[target] = prefixed.GetValueOrDefault(target) || inspected.Base != 0;
                 var missing = inspected.Map.Except(replacement.Map).ToArray();
                 int cjk = missing.Count(c => c is >= 0x3400 and <= 0x9fff or >= 0x20000 and <= 0x323af);
                 manifest.VerifiedOriginals.Add(new(target, source.Pak, inspected.Info, missing.Length, cjk));
@@ -158,10 +204,13 @@ public static class FontService
         Directory.CreateDirectory(stage);
         try
         {
+            var staged = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase);
             foreach (var target in targets)
             {
+                byte[] payload = prefixed.GetValueOrDefault(target) ? WrapSizePrefixed(bytes) : bytes;
+                staged[target] = payload;
                 string destination = Path.Combine(stage, target.Replace('/', Path.DirectorySeparatorChar));
-                Directory.CreateDirectory(Path.GetDirectoryName(destination)!); File.WriteAllBytes(destination, bytes);
+                Directory.CreateDirectory(Path.GetDirectoryName(destination)!); File.WriteAllBytes(destination, payload);
             }
             manifest.Artifact = Path.Combine(output, "zz_UEFontTool_P.pak");
             manifest.OutputPakVersion = PakTools.OldestVersion(targets.SelectMany(t => scan.Fonts[t]).Select(s => s.Version));
@@ -178,13 +227,13 @@ public static class FontService
                 var reader = new WukongPak(manifest.Artifact, keys);
                 if (!reader.Entries.Keys.Order().SequenceEqual(targets.Order())) throw new InvalidDataException("PAK path verification failed.");
                 foreach (var target in targets)
-                    if (PakTools.Hash(reader.Extract(target)) != replacement.Info.Sha256) throw new InvalidDataException("PAK font hash verification failed.");
+                    if (PakTools.Hash(reader.Extract(target)) != PakTools.Hash(staged[target])) throw new InvalidDataException("PAK font hash verification failed.");
             }
             else
             {
                 if (!PakTools.List(manifest.Artifact).Order().SequenceEqual(targets.Order())) throw new InvalidDataException("PAK path verification failed.");
                 foreach (var target in targets)
-                    if (PakTools.Hash(PakTools.Run("get", manifest.Artifact, target)) != replacement.Info.Sha256) throw new InvalidDataException("PAK font hash verification failed.");
+                    if (PakTools.Hash(PakTools.Run("get", manifest.Artifact, target)) != PakTools.Hash(staged[target])) throw new InvalidDataException("PAK font hash verification failed.");
             }
             manifest.ArtifactSha256 = PakTools.HashFile(manifest.Artifact);
             WriteManifest(manifest);

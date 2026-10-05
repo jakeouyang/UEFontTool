@@ -1,5 +1,12 @@
 # Changelog / 更新记录
 
+## v0.5.1
+
+- Add an "Export fonts" action (button next to Restore, plus `export <game> <folder> [targets...]` CLI) that extracts checked originals as real TTF/OTF/TTC files, stripping observed loose-font size prefixes, so languages and typefaces can be identified before replacing. Without targets the CLI exports every standalone font found by the scan.
+- Detect and transparently read loose fonts stored as a little-endian size prefix plus TTF/OTF bytes plus zero padding (observed in FINAL FANTASY RESONANCE DEMO), and replicate that wrapper when replacing them; readback verification now compares the exact staged payload.
+- 新增“导出字体”功能（按钮位于“还原字体”右侧，CLI 为 `export <game> <folder> [targets...]`），把勾选的原字体导出为真实 TTF/OTF/TTC 文件（自动剥离长度前缀包装），便于替换前确认语言与字体样式；CLI 不带目标时导出扫描到的全部独立字体。
+- 自动识别并读取“小端长度前缀 + TTF/OTF + 零填充”的独立字体格式（见于最终幻想RESONANCE试玩版），替换时自动复刻同样包装；回读校验改为比对实际暂存字节。
+
 ## v0.5.0
 
 - Wukong: convert packed output to the game's runtime layout (custom 223-byte footer plus a pad byte per entry so data starts at the runtime's 54-byte local header), then verify by reading the artifact back through the Wukong adapter. Confirmed working in game on the current Steam build (2026-10); no launch flags or signature bypass required.

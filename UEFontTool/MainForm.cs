@@ -14,7 +14,7 @@ public sealed class MainForm : Form
     readonly Label subtitle = Label(), gameLabel = Label(), fontLabel = Label(), languagesLabel = Label(), targetLabel = Label(), guidance = Label();
     readonly CheckBox simplified = Check(), traditional = Check(), english = Check(), showEngine = Check();
     readonly Button remember;
-    readonly Button language, scanButton, buildButton, installButton, restoreButton, gameBrowse, fontBrowse, advanced;
+    readonly Button language, scanButton, buildButton, installButton, restoreButton, exportButton, gameBrowse, fontBrowse, advanced;
     readonly List<Control> disabled = new();
     readonly HashSet<string> chosen = new(StringComparer.OrdinalIgnoreCase);
     ScanReport? report;
@@ -110,7 +110,8 @@ public sealed class MainForm : Form
         var actions = new FlowLayoutPanel { Dock = DockStyle.Fill, Margin = Padding.Empty, WrapContents = false };
         scanButton = Button("", () => Run("scan")); buildButton = Button("", () => Run("build"));
         installButton = Button("", () => Run("install")); restoreButton = Button("", () => Run("restore"));
-        foreach (var button in new[] { scanButton, buildButton, installButton, restoreButton }) { button.Width = 210; actions.Controls.Add(button); }
+        exportButton = Button("", () => Run("export"));
+        foreach (var button in new[] { scanButton, buildButton, installButton, restoreButton, exportButton }) { button.Width = 196; actions.Controls.Add(button); }
         layout.Controls.Add(actions, 0, 8);
         var logPanel = new Panel { Dock = DockStyle.Fill, BackColor = PanelColor, Padding = new Padding(12), Margin = new Padding(0, 4, 0, 4) };
         logPanel.Controls.Add(log); layout.Controls.Add(logPanel, 0, 9);
@@ -119,9 +120,9 @@ public sealed class MainForm : Form
         var footer = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, Margin = Padding.Empty };
         footer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100)); footer.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 80));
         footer.Controls.Add(status);
-        var version = Label(); version.Text = "v0.5"; version.ForeColor = Color.Gray; version.TextAlign = ContentAlignment.MiddleRight; footer.Controls.Add(version);
+        var version = Label(); version.Text = "v0.5.1"; version.ForeColor = Color.Gray; version.TextAlign = ContentAlignment.MiddleRight; footer.Controls.Add(version);
         layout.Controls.Add(footer, 0, 11);
-        disabled.AddRange(new Control[] { game, font, filter, gameBrowse, fontBrowse, simplified, traditional, english, targets, advanced, scanButton, buildButton, installButton, restoreButton, language, showEngine, remember });
+        disabled.AddRange(new Control[] { game, font, filter, gameBrowse, fontBrowse, simplified, traditional, english, targets, advanced, scanButton, buildButton, installButton, restoreButton, exportButton, language, showEngine, remember });
         try
         {
             string settings = Path.Combine(FontService.DataRoot, "settings.json");
@@ -193,6 +194,7 @@ public sealed class MainForm : Form
         gameBrowse.Text = fontBrowse.Text = T("Open", "浏览"); advanced.Text = "AES";
         scanButton.Text = T("Scan fonts", "扫描字体"); buildButton.Text = T("Build only", "仅生成");
         installButton.Text = T("Build and install", "生成并安装"); restoreButton.Text = T("Restore font", "还原字体");
+        exportButton.Text = T("Export fonts", "导出字体");
         showEngine.Text = T("Engine fonts", "显示引擎字体"); remember.Text = T("Save mapping", "记住选择");
         UpdateSelectionSummary();
         var limit = Controls.Find("limit", true).First();
@@ -266,7 +268,8 @@ public sealed class MainForm : Form
         if (busy) return;
         string root = game.Text.Trim().Trim('"'), file = font.Text.Trim().Trim('"');
         string[] selection = chosen.ToArray();
-        if (command is "build" or "install" && report == null) { Append(T("Scan the game first.", "请先扫描游戏目录。")); return; }
+        if (command is "build" or "install" or "export" && report == null) { Append(T("Scan the game first.", "请先扫描游戏目录。")); return; }
+        if (command == "export" && selection.Length == 0) { Append(T("Check at least one font to export.", "请先勾选要导出的字体。")); return; }
         busy = true; disabled.ForEach(c => c.Enabled = false); status.Text = T("Working…", "正在处理…");
         try
         {
@@ -279,9 +282,18 @@ public sealed class MainForm : Form
                 report = await Task.Run(() => FontService.Scan(root, aesKey, log)); ApplyRecommendations();
                 foreach (var error in report.Errors.Concat(report.ModErrors)) Append(error);
                 foreach (var conflict in report.Conflicts.Values.SelectMany(v => v).Distinct()) Append(T("Existing font mod: ", "已有字体 Mod：") + conflict);
-                if (report.IoStoreContainers > 0) Append(T("This game uses IoStore; listed font payloads are in PAK and use a PAK-only replacement.", "游戏使用 IoStore；列表中的字体数据位于 PAK，这些字体可单独生成 PAK 替换。"));
+                if (report.IoStoreContainers > 0) Append(T("This game uses IoStore containers; PAK fonts may not be what the runtime loads. Verify replacements in game.", "游戏含 IoStore 容器；PAK 内字体未必是运行时实际引用的资源，替换是否生效请游戏内验证。"));
             }
             else if (command == "restore") await Task.Run(() => FontService.Restore(root, log));
+            else if (command == "export")
+            {
+                var current = report!;
+                using var dialog = new FolderBrowserDialog { Description = T("Select the export folder", "选择导出目录"), UseDescriptionForTitle = true };
+                if (dialog.ShowDialog() != DialogResult.OK) { status.Text = T("Ready", "就绪"); return; }
+                string folder = dialog.SelectedPath;
+                int count = await Task.Run(() => FontService.Export(current, selection, folder, aesKey, log));
+                Append(T($"Exported {count} font(s) to {folder}.", $"已导出 {count} 个字体到 {folder}。"));
+            }
             else
             {
                 var current = report!;

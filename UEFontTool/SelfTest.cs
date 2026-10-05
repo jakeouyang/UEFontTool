@@ -58,6 +58,22 @@ public static class SelfTest
             WukongPakWriter.Convert(wukong);
             Assert(WukongPak.Detect(wukong), "Convert to the Wukong footer layout");
             Assert(System.Text.Encoding.UTF8.GetString(new WukongPak(wukong, new()).Extract("font.ufont")) == "test payload", "Round-trip the Wukong layout with runtime data offsets");
+            var exportScan = new ScanReport { Game = Path.Combine(root, "game"), Paks = paks };
+            exportScan.Fonts["font.ufont"] = new() { new FontSource(artifact, false) };
+            string exportDir = Path.Combine(root, "export"); Directory.CreateDirectory(exportDir);
+            Assert(FontService.Export(exportScan, new[] { "font.ufont" }, exportDir, null, _ => { }) == 1
+                && File.ReadAllBytes(Path.Combine(exportDir, "font.ufont")).SequenceEqual(System.Text.Encoding.UTF8.GetBytes("test payload")), "Export checked fonts as real font files");
+            string system = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Fonts), "segoeui.ttf");
+            if (File.Exists(system))
+            {
+                byte[] plain = File.ReadAllBytes(system);
+                var wrapped = new byte[plain.Length + 8];
+                BitConverter.GetBytes((uint)plain.Length).CopyTo(wrapped, 0);
+                plain.CopyTo(wrapped, 4);
+                var plainFont = new SfntFont(plain);
+                var wrappedFont = new SfntFont(wrapped);
+                Assert(wrappedFont.Base == 4 && plainFont.Family == wrappedFont.Family && plainFont.Codepoints.SetEquals(wrappedFont.Codepoints), "Read size-prefixed loose fonts transparently");
+            }
             var scan = new ScanReport { Game = Path.Combine(root, "game"), Paks = paks };
             scan.Fonts["font.ufont"] = new();
             scan.Fonts["b1/Content/Fonts/Font_SC_Regular.ufont"] = new();
@@ -70,6 +86,9 @@ public static class SelfTest
             using (var ui = new MainForm())
             {
                 ui.Show(); Application.DoEvents(); ui.CheckLayout(); ui.CheckSelection(scan);
+                IEnumerable<Control> All(Control c) { foreach (Control child in c.Controls) { yield return child; foreach (var grandChild in All(child)) yield return grandChild; } }
+                Assert(All(ui).All(control => control.Right <= ui.ClientSize.Width), "All controls including the export row fit the window width");
+                Assert(All(ui).OfType<Button>().Any(button => button.Text.Contains("Export") || button.Text.Contains("导出")), "Export button is present");
                 Assert(true, "Bilingual layout, icon, language selection, Engine toggle");
             }
             var manifest = new BuildManifest { Game = scan.Game, Artifact = artifact, ArtifactSha256 = PakTools.HashFile(artifact), Targets = new[] { "font.ufont" } };

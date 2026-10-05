@@ -20,6 +20,7 @@ GitHub 自动生成的 Source code 压缩包是源码，不是可直接运行的
 4. 手动调整后，只选择一种语言，点击“记住选择”。右键该按钮可恢复自动识别。Engine 字体默认隐藏；路径筛选不会取消已勾选项，界面会显示隐藏的已选数量。
 5. “仅生成”生成并回读校验；“生成并安装”还会检查已识别的字体 Mod 冲突。
 6. “还原字体”仅删除本工具记录中路径、哈希一致的安装文件。
+7. “导出字体”把勾选的原字体导出为 TTF/OTF 等真实字体文件（自动识别语言与格式，便于确认目标字体）。
 
 输出、设置和安装记录保存在程序旁的 `data/`。每次构建保留 PAK 和 `manifest.json`，包括目标路径、SHA-256、字符覆盖差异与输出 PAK 版本。保留安装记录才能可靠还原。
 
@@ -95,8 +96,11 @@ dotnet UEFontTool/bin/Release/net8.0-windows/UEFontTool.dll --self-test test-res
 UEFontTool.exe scan "GAME_DIR" "scan.json"
 UEFontTool.exe build "GAME_DIR" "FONT.ttf" "build.json" "Game/Content/Fonts/Font.ufont"
 UEFontTool.exe restore "GAME_DIR"
+UEFontTool.exe export "GAME_DIR" "OUTPUT_DIR" [targets...]
 UEFontTool.exe diagnose-wukong "GAME_DIR"
 ```
+
+`export` 省略目标时导出扫描到的全部独立字体；FFRS 等带长度前缀的字体会导出为剥离包装后的真实字体文件。
 
 加密游戏通过当前进程环境变量 `UEFONTTOOL_AES_KEY` 提供密钥。CLI build 省略目标时使用该游戏的简体映射，只生成、不安装。
 UI 不保存 AES，但通用 PAK 操作需要将密钥传递给本机 repak 子进程，具有本机进程检查权限的软件可能读取它。配置、扫描报告和构建清单包含本机路径，分享问题报告前请自行脱敏。

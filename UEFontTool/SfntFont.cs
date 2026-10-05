@@ -10,18 +10,27 @@ public sealed class SfntFont
     readonly byte[] data;
     public string Family { get; } = "Font";
     public HashSet<int> Codepoints { get; } = new();
+    public int Base { get; }
     ReadOnlySpan<byte> Slice(int offset, int count)
     {
+        offset += Base;
         if (offset < 0 || count < 0 || offset > data.Length - count) throw new InvalidDataException("Font table outside file.");
         return data.AsSpan(offset, count);
     }
     int U16(int offset) => BinaryPrimitives.ReadUInt16BigEndian(Slice(offset, 2));
     uint U32(int offset) => BinaryPrimitives.ReadUInt32BigEndian(Slice(offset, 4));
     int I32(int offset) => checked((int)U32(offset));
+    static uint RawBE32(byte[] d, int o) => (uint)(d[o] << 24 | d[o + 1] << 16 | d[o + 2] << 8 | d[o + 3]);
+    static uint RawLE32(byte[] d, int o) => (uint)(d[o] | d[o + 1] << 8 | d[o + 2] << 16 | d[o + 3] << 24);
+    public static int LooseFontBase(byte[] data) =>
+        data.Length >= 16 && RawBE32(data, 0) is not (0x00010000 or 0x4f54544f) && RawBE32(data, 4) is (0x00010000 or 0x4f54544f) && RawLE32(data, 0) <= (uint)(data.Length - 8) ? 4 : 0;
     public SfntFont(byte[] bytes)
     {
         data = bytes;
-        if (data.Length < 12 || U32(0) is not (0x00010000 or 0x4f54544f)) throw new InvalidDataException("仅支持独立 TTF/OTF 字体 / Only standalone TTF/OTF fonts are supported.");
+        // Some cookers (observed in FINAL FANTASY RESONANCE) store loose fonts as a
+        // little-endian payload length, the TTF/OTF bytes, then zero padding.
+        Base = LooseFontBase(bytes);
+        if (data.Length - Base < 12 || U32(0) is not (0x00010000 or 0x4f54544f)) throw new InvalidDataException("仅支持独立 TTF/OTF 字体 / Only standalone TTF/OTF fonts are supported.");
         var tables = new Dictionary<string, (int Offset, int Length)>();
         int count = U16(4);
         if (count is 0 or > 4096) throw new InvalidDataException("Invalid font table count.");

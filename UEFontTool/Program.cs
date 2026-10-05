@@ -27,6 +27,22 @@ internal static class Program
                     var manifest = FontService.Build(scan, font, selected, Environment.GetEnvironmentVariable("UEFONTTOOL_AES_KEY"), Console.WriteLine);
                     File.WriteAllText(output, JsonSerializer.Serialize(manifest, FontService.Json)); break;
                 case ["restore", var game]: FontService.Restore(game, Console.WriteLine); break;
+                case ["export", var game, var output]:
+                    {
+                        Directory.CreateDirectory(output);
+                        var exportScan = FontService.Scan(game, Environment.GetEnvironmentVariable("UEFONTTOOL_AES_KEY"), Console.WriteLine);
+                        int count = FontService.Export(exportScan, exportScan.Fonts.Keys.ToArray(), output, Environment.GetEnvironmentVariable("UEFONTTOOL_AES_KEY"), Console.WriteLine);
+                        Console.WriteLine($"Exported {count} font(s) to {output}");
+                        break;
+                    }
+                case ["export", var game, var output, .. var targets]:
+                    {
+                        Directory.CreateDirectory(output);
+                        var exportScan = FontService.Scan(game, Environment.GetEnvironmentVariable("UEFONTTOOL_AES_KEY"), Console.WriteLine);
+                        int count = FontService.Export(exportScan, targets, output, Environment.GetEnvironmentVariable("UEFONTTOOL_AES_KEY"), Console.WriteLine);
+                        Console.WriteLine($"Exported {count} font(s) to {output}");
+                        break;
+                    }
                 case ["diagnose-wukong", var game]: WukongLoader.Diagnose(game, Console.WriteLine); break;
                 case ["--render-ui", var output, .. var options]:
                     using (var form = new MainForm())
@@ -38,7 +54,7 @@ internal static class Program
                     }
                     break;
                 case ["--self-test", var output]: resultFile = output; SelfTest.Run(output); break;
-                default: throw new ArgumentException("scan <game> <report.json> | build <game> <font> <report.json> [targets...] | restore <game> | --render-ui <image.png> [--en] | --self-test <report.txt>");
+                default: throw new ArgumentException("scan <game> <report.json> | build <game> <font> <report.json> [targets...] | restore <game> | export <game> <folder> [targets...] | --render-ui <image.png> [--en] | --self-test <report.txt>");
             }
             return 0;
         }
