@@ -112,7 +112,7 @@ public static class SelfTest
             Assert(LanguageMap.Select(scan, Languages.Simplified, false).SetEquals(new[] { "font.ufont" }), "Remember selection overrides automatic language paths");
             LanguageMap.Forget(scan, Languages.Simplified);
             Assert(LanguageMap.Select(scan, Languages.Simplified, false).Contains("b1/Content/Fonts/Font_SC_Regular.ufont"), "Reset restores automatic language detection");
-            using(var guided=new GuidedForm(false)){guided.Show();Application.DoEvents();guided.CheckExperience(scan);Assert(true,"Guided UI: recommendations, unknown languages, hidden selections and explicit replacement fonts");}
+            using(var guided=new GuidedForm(false)){guided.Show();Application.DoEvents();guided.CheckExperience(scan);Assert(true,"Guided UI: recommendations, unknown languages, hidden selections and explicit replacement fonts");guided.CheckMoreMenu();Assert(true,"More menu: close, modal detection details and repeated reopening do not dispose the active dropdown");}
             using(var input=new FontInput())
             {
                 int edits=0;input.TextChanged+=(_,_)=>edits++;input.Text="test-font.ttf";input.UseSystemPasswordChar=true;
@@ -160,9 +160,17 @@ public static class SelfTest
             ModInstaller.Install(scan.Game,groupBuild);
             Assert(group.Artifacts.All(f=>PakTools.HashFile(Path.Combine(mods,f.File))==f.Sha256),"Safely replace an owned installation without losing suspended-mod records");
             string changed=Path.Combine(mods,groupName+".ucas");File.AppendAllText(changed,"changed");Reject(()=>ModInstaller.Restore(scan.Game),"Refuse group restoration when any installed hash changed");
+            Reject(()=>ModInstaller.Install(scan.Game,groupBuild),"Refuse to overwrite externally changed installed files");
             Assert(group.Artifacts.All(f=>File.Exists(Path.Combine(mods,f.File))),"A failed restore leaves every installed file intact");File.Copy(Path.Combine(ready,groupName+".ucas"),changed,true);
+            File.Delete(changed);ModInstaller.Install(scan.Game,groupBuild);
+            Assert(group.Artifacts.All(f=>PakTools.HashFile(Path.Combine(mods,f.File))==f.Sha256),"Rebuild a partially removed owned group without losing suspended backups");
+            foreach(var file in group.Artifacts)File.Delete(Path.Combine(mods,file.File));ModInstaller.Install(scan.Game,groupBuild);
+            Assert(group.Artifacts.All(f=>File.Exists(Path.Combine(mods,f.File))),"Rebuild an entirely removed owned group while retaining restoration history");
+            File.Delete(changed);
             ModInstaller.Restore(scan.Game);
             Assert(group.Artifacts.All(f=>!File.Exists(Path.Combine(mods,f.File)))&&PakTools.HashFile(thirdParty)==thirdPartyHash,"Restore all owned files and the exact suspended third-party mod");
+            ModInstaller.Install(scan.Game,groupBuild,true);foreach(var file in group.Artifacts)File.Delete(Path.Combine(mods,file.File));ModInstaller.Restore(scan.Game);
+            Assert(PakTools.HashFile(thirdParty)==thirdPartyHash,"Restore suspended mods even when every owned file was manually removed");
         }
         finally { Directory.Delete(root, true); }
         File.WriteAllLines(report, results);

@@ -68,9 +68,28 @@ public sealed partial class GuidedForm
         var note=new Label{Text=T("通常保持自动即可。密钥仅用于本次会话，不保存到文件。","Usually keep Automatic. Keys are session-only and are not saved."),AutoSize=true,MaximumSize=new Size(650,0)};table.RowStyles.Add(new RowStyle(SizeType.AutoSize));table.Controls.Add(note,0,4);table.SetColumnSpan(note,2);
         var save=Button();save.Text=T("应用","Apply");table.RowStyles.Add(new RowStyle(SizeType.AutoSize));table.Controls.Add(save,1,5);save.Click+=(_,_)=>{try{PakTools.Keys(input.Text.Trim());IoStoreFonts.Name(name.Text.Trim());key.Text=input.Text.Trim();engine.SelectedIndex=versions.SelectedIndex;modName.Text=name.Text.Trim();allowSymbols.Checked=risk.Checked;dialog.DialogResult=DialogResult.OK;}catch(Exception ex){MessageBox.Show(dialog,ex.Message);}};dialog.AcceptButton=save;dialog.SetCaptionLanguage(zh);dialog.ShowDialog(this);input.Clear();
     }
-    void MoreMenu()
+    ContextMenuStrip? ownedMoreMenu;
+    ContextMenuStrip GetMoreMenu()
     {
-        var menu=new ContextMenuStrip();menu.Items.Add(T("仅生成，不安装","Build only"),null,(_,_)=>{installAfterBuild=false;Build();});menu.Items.Add(T("打开生成目录","Open output folder"),null,(_,_)=>{if(output!=null)Process.Start(new ProcessStartInfo(output){UseShellExecute=true});});menu.Items.Add(T("查看检测详情","Detection details"),null,(_,_)=>ShowDiagnostics());menu.Items.Add(T("为勾选项单独选新字体…","Choose another font for checked items…"),null,(_,_)=>ChooseFont(p=>{foreach(var t in targets.Where(t=>t.Selected))t.FontOverride=p;Fill();}));menu.Items.Add(T("勾选项恢复默认字体","Use default for checked items"),null,(_,_)=>{foreach(var t in targets.Where(t=>t.Selected))t.FontOverride=null;Fill();});menu.Items.Add(T("专家工具…","Expert tools…"),null,(_,_)=>{using var form=new MainForm();form.ShowDialog(this);});menu.Closed+=(_,_)=>menu.Dispose();menu.Show(moreActions,new Point(0,moreActions.Height));
+        if(ownedMoreMenu!=null)return ownedMoreMenu;
+        var menu=new ContextMenuStrip{BackColor=Color.Black,ForeColor=Color.Silver,Font=Font,Renderer=new ToolStripProfessionalRenderer(new FontMenuColors())};ownedMoreMenu=menu;
+        void Add(Action action){menu.Items.Add("",null,(_,_)=>{if(!IsDisposed&&!Disposing)BeginInvoke(new Action(()=>{if(IsDisposed||Disposing)return;try{action();}catch(Exception ex){ReportFailure(ex,game.Text.Trim(),"more");}}));});}
+        Add(()=>{installAfterBuild=false;Build();});Add(()=>{if(output!=null)Process.Start(new ProcessStartInfo(output){UseShellExecute=true});});Add(ShowDiagnostics);Add(()=>ChooseFont(p=>{foreach(var t in targets.Where(t=>t.Selected))t.FontOverride=p;Fill();}));Add(()=>{foreach(var t in targets.Where(t=>t.Selected))t.FontOverride=null;Fill();});Add(()=>{using var form=new MainForm();form.ShowDialog(this);});
+        return menu;
+    }
+    void MoreMenu(){var menu=GetMoreMenu();string[] labels={T("仅生成，不安装","Build only"),T("打开生成目录","Open output folder"),T("查看检测详情","Detection details"),T("为勾选项单独选新字体…","Choose another font for checked items…"),T("勾选项恢复默认字体","Use default for checked items"),T("专家工具…","Expert tools…")};for(int i=0;i<labels.Length;i++)menu.Items[i].Text=labels[i];menu.Show(moreActions,new Point(0,moreActions.Height));}
+    protected override void Dispose(bool disposing){if(disposing)ownedMoreMenu?.Dispose();base.Dispose(disposing);}
+    internal void CheckMoreMenu()
+    {
+        string fixture=new('A',64);ReportFailure(new IOException("Synthetic operation failure: "+fixture),"SYNTHETIC_GAME","test");
+        if(!details.Text.Contains("Synthetic operation failure")||details.Text.Contains(fixture)||summary.Text.Contains(fixture)||!File.ReadAllText(Path.Combine(FontService.DataRoot,"last-error.txt")).Contains("[redacted]"))throw new Exception("Operation errors must stay readable on the main form and redact key-shaped data in saved diagnostics.");
+        for(int i=0;i<3;i++){MoreMenu();ownedMoreMenu!.Close();if(ownedMoreMenu.IsDisposed)throw new Exception("Closing More must not dispose the menu during click handling.");}
+        bool opened=false,readable=false;string previous=diagnosticText;diagnosticText="Synthetic operation failure details";
+        using var timer=new System.Windows.Forms.Timer{Interval=25};
+        timer.Tick+=(_,_)=>{var dialog=OwnedForms.SingleOrDefault(f=>f.Text==T("检测详情","Detection details"));if(dialog!=null){opened=true;readable=dialog.Controls.OfType<TextBox>().Any(c=>c.Text==diagnosticText);timer.Stop();dialog.Close();}};
+        timer.Start();MoreMenu();ownedMoreMenu!.Items[2].PerformClick();ownedMoreMenu.Close();Application.DoEvents();timer.Stop();diagnosticText=previous;
+        if(!opened||!readable)throw new Exception("Detection details must open after More closes and retain readable failure details.");
+        MoreMenu();ownedMoreMenu.Close();if(ownedMoreMenu.IsDisposed)throw new Exception("More must reopen after a modal command.");
     }
     void ShowDiagnostics(){using var dialog=new DarkWindow{Text=T("检测详情","Detection details"),Width=1050,Height=740,StartPosition=FormStartPosition.CenterParent};dialog.Controls.Add(new TextBox{Dock=DockStyle.Fill,Multiline=true,ReadOnly=true,BackColor=PanelColor,ForeColor=Color.Silver,BorderStyle=BorderStyle.None,WordWrap=true,ScrollBars=ScrollBars.Vertical,Text=diagnosticText});dialog.SetCaptionLanguage(zh);dialog.ShowDialog(this);}
     bool ConfirmConflicts(string[] conflicts)
@@ -79,6 +98,6 @@ public sealed partial class GuidedForm
     }
     async Task RestoreInstalled()
     {
-        if(busy)return;SetBusy(true);try{string root=game.Text.Trim();await Task.Run(()=>ModInstaller.Restore(root));problem=null;summary.Text=T("已还原本工具的字体修改，并恢复此前暂存的冲突 MOD。","Tool font changes and previously suspended mods have been restored.");}catch(Exception ex){diagnosticText=ex.ToString();problem=T("还原未完成，请查看详情。","Restore incomplete; see details.");summary.Text=problem;}finally{SetBusy(false);}
+        if(busy)return;SetBusy(true);string root=game.Text.Trim();try{await Task.Run(()=>ModInstaller.Restore(root));problem=null;summary.Text=T("已还原本工具的字体修改，并恢复此前暂存的冲突 MOD。","Tool font changes and previously suspended mods have been restored.");}catch(Exception ex){ReportFailure(ex,root,"restore");}finally{SetBusy(false);}
     }
 }

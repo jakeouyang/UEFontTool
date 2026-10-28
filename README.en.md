@@ -59,7 +59,9 @@ Details include static imports, font classes and selected/candidate containers. 
 
 The adjacent `data/` folder holds settings, analyses, builds, installation records and backups. Guided builds live under `data/guided-output/`; installable files are in each build's `ReadyToInstall/`. `result.json` records the game, targets and artifact hashes. Detailed conversion/missing-character reports are in that build's `build/manifest.json` or the standalone build manifest.
 
-Restore checks the entire installed group and suspended backups before making changes. Missing or externally changed files stop the operation; files are not blindly removed by name. Updating an owned installation retains suspended-mod records. Failed operations attempt rollback. **Keep the original tool directory's `data/` folder when updating or moving the application**, otherwise reliable restoration is unavailable. Legacy expert-mode standalone PAK installations can still be restored.
+Restore checks surviving tool files and suspended backups before making changes. Manually removed tool files do not prevent rebuilding or restoring suspended mods. Surviving files with changed hashes block the operation; files are not blindly overwritten or removed by name. Missing or changed suspended backups still prevent restoration. Updating an owned installation retains suspended-mod records. Failed operations attempt rollback. **Keep the original tool directory's `data/` folder when updating or moving the application**, otherwise reliable restoration is unavailable. Legacy expert-mode standalone PAK installations can still be restored.
+
+Operation failures show their cause and full details in the main information area and More → Detection details. The latest error is saved to `data/last-error.txt` with key-shaped data redacted. Local paths remain; review before sharing.
 
 ## Troubleshooting
 
@@ -96,7 +98,7 @@ dotnet build UEFontTool/UEFontTool.csproj -c Release
 dotnet UEFontTool/bin/Release/net8.0-windows/UEFontTool.dll --self-test test-results.txt
 ```
 
-Automated tests use synthetic archives, system fonts and test-only keys; no game is needed. Main pushes, PRs and manual Actions runs build/test and upload artifacts. A `v*` tag matching the project version, such as `v0.8.4`, publishes to GitHub Releases. The workflow uses `GITHUB_TOKEN`; personal tokens and SSH private keys do not belong in source control.
+Automated tests use synthetic archives, system fonts and test-only keys; no game is needed. Main pushes, PRs and manual Actions runs build/test and upload artifacts. A `v*` tag matching the project version, such as `v0.8.5`, publishes to GitHub Releases. The workflow uses `GITHUB_TOKEN`; personal tokens and SSH private keys do not belong in source control.
 
 ## Command line
 

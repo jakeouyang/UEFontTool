@@ -1,5 +1,13 @@
 # Changelog / 更新记录
 
+## v0.8.5
+
+- Fix More-menu ObjectDisposedException: keep the dropdown alive with its form and dispatch commands after click/close processing completes. Reopening the menu and opening modal diagnostics are covered by regression tests.
+- Permit rebuilding/restoring an owned installation after some or all tool files were manually removed, retaining suspended-mod backup history. Existing files whose hashes changed remain protected.
+- Show the actual failure reason and full diagnostics in the main information area; save redacted details to `data/last-error.txt`.
+- Reproduced the stale FFRS installation-record failure and verified the guided analyze/build/install workflow against the actual game directory, with all three installed artifact hashes and the original backup checked.
+- 修复“更多操作”关闭时过早释放导致的 JIT 异常；允许手动删除本工具文件后重新生成或还原，继续保护被修改的文件与原有备份；主界面直接显示错误原因，并保存脱敏错误详情。
+
 ## v0.8.4
 
 - Place language switching, GitHub and Settings directly in the title bar, immediately before the minimize/maximize/close controls, without a separate menu row.

@@ -41,7 +41,7 @@ public static class ModInstaller
         var record=JsonSerializer.Deserialize<InstalledMod>(File.ReadAllText(Record(paks)))??throw new InvalidDataException("Invalid installation record.");
         if(!Canonical(record.Paks).Equals(Canonical(paks),StringComparison.OrdinalIgnoreCase))throw new IOException("Installation record game mismatch.");
         if(record.Files.Length==0||record.Files.Select(f=>f.File).Distinct(StringComparer.OrdinalIgnoreCase).Count()!=record.Files.Length)throw new IOException("Invalid installed file group.");
-        foreach(var file in record.Files){string path=Target(paks,record.Name,file);if(!File.Exists(path)||PakTools.HashFile(path)!=file.Sha256)throw new IOException("本工具已安装文件被修改或缺失，未进行覆盖 / Installed file changed or missing: "+path);}
+        foreach(var file in record.Files){string path=Target(paks,record.Name,file);if(File.Exists(path)&&PakTools.HashFile(path)!=file.Sha256)throw new IOException("本工具已安装文件被修改，未进行覆盖；请检查文件或安装记录 / Installed file changed; check the file or installation record: "+path);}
         return record;
     }
     public static BuiltMod Load(string buildDirectory,string game)
@@ -97,7 +97,7 @@ public static class ModInstaller
                 string hash=PakTools.HashFile(original),save=Path.Combine(backup,PakTools.Hash(Encoding.UTF8.GetBytes(original))[..12]+"-"+Path.GetFileName(original));
                 File.Move(original,save);suspended.Add(new(original,save,hash));
             }
-            if(previous!=null)foreach(var file in previous.Files){string target=Target(paks,previous.Name,file),save=Path.Combine(backup,file.File);File.Move(target,save);saved.Add((save,target));}
+            if(previous!=null)foreach(var file in previous.Files){string target=Target(paks,previous.Name,file),save=Path.Combine(backup,file.File);if(File.Exists(target)){File.Move(target,save);saved.Add((save,target));}}
             foreach(var entry in pending){File.Move(entry.Temp,entry.Target,false);moved.Add((entry.Target,entry.File.Sha256));}
             string record=Record(paks);Directory.CreateDirectory(Path.GetDirectoryName(record)!);
             string tempRecord=record+".tmp";File.WriteAllText(tempRecord,JsonSerializer.Serialize(new InstalledMod{Paks=paks,Name=mod.Name,Files=mod.Artifacts,Suspended=(previous?.Suspended??Array.Empty<SuspendedModFile>()).Concat(suspended).ToArray()},FontService.Json));File.Move(tempRecord,record,true);
@@ -123,7 +123,7 @@ public static class ModInstaller
         string backup=Path.Combine(FontService.DataRoot,"guided-backups",Guid.NewGuid().ToString("N"));Directory.CreateDirectory(backup);var moved=new List<(string From,string To)>();
         try
         {
-            foreach(var file in record.Files){string source=Target(paks,record.Name,file),destination=Path.Combine(backup,file.File);File.Move(source,destination);moved.Add((source,destination));}
+            foreach(var file in record.Files){string source=Target(paks,record.Name,file),destination=Path.Combine(backup,file.File);if(File.Exists(source)){File.Move(source,destination);moved.Add((source,destination));}}
             foreach(var file in record.Suspended){File.Move(file.Backup,file.Original);moved.Add((file.Backup,file.Original));}
             File.Copy(Record(paks),Path.Combine(backup,"installation.json"));File.Delete(Record(paks));
         }

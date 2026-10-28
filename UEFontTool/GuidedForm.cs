@@ -48,6 +48,7 @@ public sealed partial class GuidedForm : DarkWindow
     void ShowDetails()
     {
         if(grid.CurrentRow?.Tag is not GuideTarget t)return;
+        detailsHeading.Text=T("字体详情 · 拖动上方分隔条可调整高度","Font details · drag the divider to resize");
         details.Text=T("完整路径：","Full path: ")+t.Path+Environment.NewLine+T("识别依据：","Evidence: ")+(zh?t.Language.ReasonZh:t.Language.ReasonEn)+Environment.NewLine+T("处理方式：","Handling: ")+(t.Inline?T("工具自动修改封装字体并生成配套文件，无需自行选择文件格式。","Embedded font; matching container files are generated automatically."):T("工具自动生成独立字体替换包。","A standalone font replacement package is generated automatically."))+Environment.NewLine+T("使用字体：","Replacement: ")+(t.FontOverride??font.Text)+(t.Cooked?.ResolvedContainer!=null?Environment.NewLine+T("来源容器：","Source container: ")+t.Cooked.ResolvedContainer:"");
     }
     void RefreshSummary()
