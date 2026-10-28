@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Text.Json;
 
 namespace UEFontTool;
@@ -9,7 +9,7 @@ public sealed partial class GuidedForm
     bool installAfterBuild=true;
     public GuidedForm(bool loadSettings=true)
     {
-        Text="UNREAL ENGINE Font Tool · v0.8";ClientSize=new Size(1040,720);MinimumSize=new Size(900,640);StartPosition=FormStartPosition.CenterScreen;BackColor=Color.Black;ForeColor=Color.Silver;Font=new Font("Microsoft YaHei UI",10);AutoScaleDimensions=new SizeF(96,96);AutoScaleMode=AutoScaleMode.Dpi;
+        Text="UNREAL ENGINE Font Tool · v"+Application.ProductVersion.Split('+')[0];ClientSize=new Size(1040,720);MinimumSize=new Size(900,700);StartPosition=FormStartPosition.CenterScreen;BackColor=Color.Black;ForeColor=Color.Silver;Font=new Font("Microsoft YaHei UI",10);AutoScaleDimensions=new SizeF(96,96);AutoScaleMode=AutoScaleMode.Dpi;
         Shown+=(_,_)=>{var area=Screen.FromControl(this).WorkingArea;MinimumSize=new Size(Math.Min(MinimumSize.Width,area.Width),Math.Min(MinimumSize.Height,area.Height));Size=new Size(Math.Min(Width,area.Width),Math.Min(Height,area.Height));Location=new Point(area.Left+(area.Width-Width)/2,area.Top+(area.Height-Height)/2);};
         using var icon=typeof(MainForm).Assembly.GetManifestResourceStream("UEFontTool.Resources.app.ico")!;Icon=new Icon(icon);
         var root=new TableLayoutPanel{Dock=DockStyle.Fill,Padding=new Padding(20),ColumnCount=1,RowCount=8};Controls.Add(root);

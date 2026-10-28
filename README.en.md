@@ -94,7 +94,7 @@ dotnet build UEFontTool/UEFontTool.csproj -c Release
 dotnet UEFontTool/bin/Release/net8.0-windows/UEFontTool.dll --self-test test-results.txt
 ```
 
-Automated tests use synthetic archives, system fonts and test-only keys; no game is needed. Main pushes, PRs and manual Actions runs build/test and upload artifacts. A `v*` tag matching the project version, such as `v0.8.0`, publishes to GitHub Releases. The workflow uses `GITHUB_TOKEN`; personal tokens and SSH private keys do not belong in source control.
+Automated tests use synthetic archives, system fonts and test-only keys; no game is needed. Main pushes, PRs and manual Actions runs build/test and upload artifacts. A `v*` tag matching the project version, such as `v0.8.1`, publishes to GitHub Releases. The workflow uses `GITHUB_TOKEN`; personal tokens and SSH private keys do not belong in source control.
 
 ## Command line
 

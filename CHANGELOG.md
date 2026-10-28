@@ -1,5 +1,11 @@
 # Changelog / 更新记录
 
+## v0.8.1
+
+- Increase the guided window's minimum height so the font list remains usable at 96 DPI; the hosted Windows build caught the smaller layout that passed on the local higher-DPI screen.
+- Use the assembly version in both window titles/footers to keep patch releases identifiable.
+- 修复 96 DPI 最小窗口下字体列表过矮的问题，并让窗口版本号跟随实际构建版本。
+
 ## v0.8.0
 
 - Fix FFRS PAK-only output by converting the observed external UE5.6 FontFace layout to Inline and generating a matching PAK/UTOC/UCAS group without Unreal Editor.
