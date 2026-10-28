@@ -33,3 +33,9 @@ FontFace and loading-policy documentation:
 https://dev.epicgames.com/documentation/en-us/unreal-engine/font-asset-and-editor-in-unreal-engine
 
 The supplied application artwork is project branding; it does not grant rights to unrelated game artwork or trademarks.
+
+## v0.6 dependencies
+
+- retoc v0.1.5 (MIT): https://github.com/trumank/retoc/tree/v0.1.5 . The Windows release is downloaded with pinned archive/executable SHA-256; releases include tools/retoc.exe and retoc-LICENSE.
+- UAssetAPI 1.1.0 (MIT): https://github.com/atenfyr/UAssetAPI . Used for package imports, exports and reserialization. Includes Newtonsoft.Json 13.0.3 (MIT) and ZstdSharp.Port 0.8.1 (MIT); their license texts are in docs/licenses.
+- ZenTools-UE4 (https://github.com/WistfulHopes/ZenTools-UE4) was evaluated as an extraction alternative; it is not bundled or invoked. retoc supplies both conversion directions.

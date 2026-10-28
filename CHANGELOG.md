@@ -1,5 +1,11 @@
 # Changelog / 更新记录
 
+## v0.6.0
+
+- Experimental inline FontFace rewriting and retoc IoStore repacking without Unreal Editor; FFRS UE5.6 / CodeVein2 UE5.4 roundtrips verified.
+- Per-resource font maps, codepoint reports, private-use protection, static imports, optional .usmap, container provenance and required _P names.
+- All/None and readable filename/path details; separate resizable IoStore grid. Runtime visuals, automatic glyph merging and full composite decoding remain pending.
+
 ## v0.5.1
 
 - Add an "Export fonts" action (button next to Restore, plus `export <game> <folder> [targets...]` CLI) that extracts checked originals as real TTF/OTF/TTC files, stripping observed loose-font size prefixes, so languages and typefaces can be identified before replacing. Without targets the CLI exports every standalone font found by the scan.

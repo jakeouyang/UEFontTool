@@ -16,6 +16,14 @@ public static class SelfTest
             Reject(() => PakTools.SafePath(path), "Reject virtual traversal: " + path);
         Assert(PakTools.SafePath("../../../b1/Content/font.ufont") == "b1/Content/font.ufont", "Normalize mount point");
         Assert(PakTools.SafePath("b1/Content//font.ufont") == "b1/Content/font.ufont", "Normalize repeated game path separators");
+        Assert(IoStoreFonts.Name("zz_Test_P")=="zz_Test_P","Preserve required _P basename");
+        foreach(var bad in new[]{"Test","../Test_P","Test_P.utoc","Test_p"})Reject(()=>IoStoreFonts.Name(bad),"Reject invalid IoStore mod basename: "+bad);
+        Assert(CookedFonts.IsPrivateUse(0xe000)&&CookedFonts.IsPrivateUse(0x100000)&&!CookedFonts.IsPrivateUse(0x4e00),"Recognize private-use glyph ranges without treating CJK as icons");
+        byte[] testFont=File.ReadAllBytes(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Fonts),"arial.ttf"));
+        byte[] inline=new byte[testFont.Length+24];BitConverter.GetBytes(testFont.Length).CopyTo(inline,16);testFont.CopyTo(inline,20);
+        Assert(CookedFonts.Locate(inline)?.Length==testFont.Length,"Locate bounded terminal inline font with padding");
+        BitConverter.GetBytes(testFont.Length-1).CopyTo(inline,16);
+        Assert(CookedFonts.Locate(inline)==null,"Reject inconsistent inline byte-array length");
         byte[] fixtureKey = Enumerable.Range(0, 32).Select(i => (byte)i).ToArray();
         Assert(PakTools.Keys("0X" + Convert.ToHexString(fixtureKey)).Single().SequenceEqual(fixtureKey), "Parse prefixed AES hex input");
         Assert(PakTools.Keys(Convert.ToBase64String(fixtureKey)).Single().SequenceEqual(fixtureKey), "Parse AES Base64 input");
@@ -41,6 +49,15 @@ public static class SelfTest
         {
             string paks = Path.Combine(root, "game", "b1", "Content", "Paks"), stage = Path.Combine(root, "stage");
             Directory.CreateDirectory(paks); Directory.CreateDirectory(stage);
+            string mappedGame=Path.Combine(root,"mapped-game"),mappedPaks=Path.Combine(mappedGame,"Test","Content","Paks"),mappedStage=Path.Combine(root,"mapped-stage");
+            Directory.CreateDirectory(mappedPaks);Directory.CreateDirectory(mappedStage);
+            File.WriteAllBytes(Path.Combine(mappedStage,"A.ttf"),testFont);File.WriteAllBytes(Path.Combine(mappedStage,"B.ttf"),testFont);
+            PakTools.Run("pack","--version","V11",mappedStage,Path.Combine(mappedPaks,"source.pak"));
+            string arial=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Fonts),"arial.ttf"),times=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Fonts),"times.ttf");
+            var mappedScan=FontService.Scan(mappedGame,null,_=>{});
+            var mappedBuild=FontService.Build(mappedScan,arial,new[]{"A.ttf","B.ttf"},null,_=>{},new(){{"A.ttf",arial},{"B.ttf",times}});
+            Assert(PakTools.Hash(PakTools.Run("get",mappedBuild.Artifact,"A.ttf"))==PakTools.Hash(testFont)&&PakTools.Hash(PakTools.Run("get",mappedBuild.Artifact,"B.ttf"))==PakTools.HashFile(times),"Apply distinct replacement fonts per resource and verify both payloads");
+            Assert(mappedBuild.Replacements.Count==2&&mappedBuild.MissingCodepoints.Count==2,"Record per-resource font metadata and missing codepoints");
             File.WriteAllText(Path.Combine(stage, "font.ufont"), "test payload");
             string artifact = Path.Combine(root, "source.pak");
             PakTools.Run("pack", "--version", "V11", stage, artifact);

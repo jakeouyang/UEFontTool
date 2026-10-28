@@ -17,6 +17,21 @@ internal static class Program
         {
             switch (args)
             {
+                case ["inspect-cooked", var input, var version, var output]:
+                    resultFile = output;
+                    var inspections = Directory.GetFiles(input, "*.uasset", SearchOption.AllDirectories).Select(p => CookedFonts.Inspect(p, version)).ToArray();
+                    File.WriteAllText(output, JsonSerializer.Serialize(inspections, FontService.Json));
+                    Console.WriteLine($"Assets: {inspections.Length}; faces: {inspections.Sum(r=>r.Faces.Count)}; failures: {inspections.Count(r=>r.Error!=null)}"); break;
+                case ["scan-cooked", var game, var version, var output, .. var filters]:
+                    IoStoreFonts.Extract(game, output, version, filters.FirstOrDefault() ?? "Font"); break;
+                case ["build-cooked", var plan, var output]:
+                    IoStoreFonts.Build(plan, output); break;
+                case ["build-mapped", var planFile, var output]:
+                    resultFile=output;
+                    var mapped=JsonSerializer.Deserialize<CookedPlan>(File.ReadAllText(planFile))!;
+                    var mappedScan=FontService.Scan(mapped.Game,Environment.GetEnvironmentVariable("UEFONTTOOL_AES_KEY"),Console.WriteLine);
+                    var mappedBuild=FontService.Build(mappedScan,mapped.Replacements.Values.First(),mapped.Replacements.Keys.ToArray(),Environment.GetEnvironmentVariable("UEFONTTOOL_AES_KEY"),Console.WriteLine,mapped.Replacements,!mapped.AllowPrivateUseLoss);
+                    File.WriteAllText(output,JsonSerializer.Serialize(mappedBuild,FontService.Json));break;
                 case ["scan", var game, var output]:
                     resultFile = output;
                     File.WriteAllText(output, JsonSerializer.Serialize(FontService.Scan(game, Environment.GetEnvironmentVariable("UEFONTTOOL_AES_KEY"), Console.WriteLine), FontService.Json)); break;
@@ -45,7 +60,7 @@ internal static class Program
                     }
                 case ["diagnose-wukong", var game]: WukongLoader.Diagnose(game, Console.WriteLine); break;
                 case ["--render-ui", var output, .. var options]:
-                    using (var form = new MainForm())
+                    using (var form = new MainForm(false))
                     {
                         form.SelectLanguage(!options.Contains("--en")); form.Show(); Application.DoEvents();
                         int sample = Array.IndexOf(options, "--sample");
@@ -53,6 +68,9 @@ internal static class Program
                         using var bitmap = new Bitmap(form.Width, form.Height); form.DrawToBitmap(bitmap, form.ClientRectangle); bitmap.Save(output);
                     }
                     break;
+                case ["--render-cooked", var output]:
+                    using(var form=new CookedForm("GAME_DIR",null))
+                    { form.Show();Application.DoEvents();using var bitmap=new Bitmap(form.Width,form.Height);form.DrawToBitmap(bitmap,form.ClientRectangle);bitmap.Save(output); } break;
                 case ["--self-test", var output]: resultFile = output; SelfTest.Run(output); break;
                 default: throw new ArgumentException("scan <game> <report.json> | build <game> <font> <report.json> [targets...] | restore <game> | export <game> <folder> [targets...] | --render-ui <image.png> [--en] | --self-test <report.txt>");
             }

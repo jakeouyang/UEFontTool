@@ -1,0 +1,11 @@
+{
+  "Game": "GAME_DIR",
+  "Version": "UE5_6",
+  "Filter": "Font",
+  "OutputName": "zz_UEFontTool_P",
+  "AllowPrivateUseLoss": false,
+  "Replacements": {
+    "Game/Content/UI/Font/Regular.uasset": "REGULAR.ttf",
+    "Game/Content/UI/Font/Bold.uasset": "BOLD.ttf"
+  }
+}

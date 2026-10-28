@@ -10,6 +10,7 @@ $output = [IO.Path]::GetFullPath($OutputDirectory)
 if (Test-Path -LiteralPath $output) { throw 'Use a new output directory; existing files will not be removed.' }
 New-Item -ItemType Directory -Path $output | Out-Null
 & (Join-Path $PSScriptRoot 'Get-Dependencies.ps1')
+& (Join-Path $PSScriptRoot 'Get-Retoc.ps1')
 $app = Join-Path $output 'app'
 dotnet publish $project -c Release -r win-x64 --self-contained true -o $app -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:DebugType=None -p:DebugSymbols=false -p:ContinuousIntegrationBuild=true
 if ($LASTEXITCODE -ne 0) { throw 'dotnet publish failed.' }
@@ -28,7 +29,7 @@ Copy-Item -LiteralPath $exe -Destination $package
 foreach ($name in @('README.md', 'README.en.md', 'LICENSE', 'THIRD_PARTY.md', 'CHANGELOG.md')) {
     Copy-Item -LiteralPath (Join-Path $repoRoot $name) -Destination $package
 }
-foreach ($name in @('repak.exe', 'LICENSE-MIT', 'LICENSE-APACHE')) {
+foreach ($name in @('repak.exe', 'LICENSE-MIT', 'LICENSE-APACHE', 'retoc.exe', 'retoc-LICENSE')) {
     Copy-Item -LiteralPath (Join-Path $app "tools/$name") -Destination (Join-Path $package 'tools')
 }
 Copy-Item -LiteralPath (Join-Path $repoRoot 'docs') -Destination $package -Recurse

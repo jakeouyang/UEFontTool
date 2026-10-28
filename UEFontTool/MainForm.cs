@@ -17,6 +17,8 @@ public sealed class MainForm : Form
     readonly Button language, scanButton, buildButton, installButton, restoreButton, exportButton, gameBrowse, fontBrowse, advanced;
     readonly List<Control> disabled = new();
     readonly HashSet<string> chosen = new(StringComparer.OrdinalIgnoreCase);
+    readonly Dictionary<string,string> perFont = new(StringComparer.OrdinalIgnoreCase);
+    readonly CheckBox protectIcons = new() { Text="保护私用字形 / PUA",Checked=true,AutoSize=true,ForeColor=Color.Silver };
     ScanReport? report;
     bool busy, filling, chinese = true;
     string? aesKey;
@@ -25,7 +27,7 @@ public sealed class MainForm : Form
     [DllImport("user32.dll")] static extern bool ReleaseCapture();
     [DllImport("user32.dll")] static extern IntPtr SendMessage(IntPtr window, int message, IntPtr wparam, IntPtr lparam);
 
-    public MainForm()
+    public MainForm(bool loadSettings = true)
     {
         Text = "UNREAL ENGINE Font Tool"; BackColor = Color.Black; ForeColor = Red;
         Font = new Font("Microsoft YaHei UI", 10.5f);
@@ -34,9 +36,9 @@ public sealed class MainForm : Form
         FormBorderStyle = FormBorderStyle.None; StartPosition = FormStartPosition.CenterScreen;
         var layout = new TableLayoutPanel { Dock = DockStyle.Fill, Padding = new Padding(28, 12, 28, 12), ColumnCount = 1, RowCount = 12 };
         foreach (int h in new[] { 58, 34, 48, 48, 42, 42, 42 }) layout.RowStyles.Add(new RowStyle(SizeType.Absolute, h));
-        layout.RowStyles.Add(new RowStyle(SizeType.Percent, 52));
+        layout.RowStyles.Add(new RowStyle(SizeType.Percent, 68));
         layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 52));
-        layout.RowStyles.Add(new RowStyle(SizeType.Percent, 48));
+        layout.RowStyles.Add(new RowStyle(SizeType.Percent, 32));
         layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
         layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 28));
         Controls.Add(layout);
@@ -100,6 +102,17 @@ public sealed class MainForm : Form
         layout.Controls.Add(selectionBar, 0, 6);
         var listPanel = new Panel { Dock = DockStyle.Fill, BackColor = PanelColor, Padding = new Padding(10), Margin = new Padding(0, 4, 0, 4) };
         listPanel.Controls.Add(targets); layout.Controls.Add(listPanel, 0, 7);
+        var detail = new TextBox { Dock=DockStyle.Bottom,Height=48,Multiline=true,ReadOnly=true,ScrollBars=ScrollBars.Vertical,BackColor=PanelColor,ForeColor=Color.Silver,BorderStyle=BorderStyle.None };
+        var listBar = new FlowLayoutPanel { Dock=DockStyle.Top,Height=36,WrapContents=false };
+        var all=Button("全选 / All",()=>SetVisibleSelection(true)); var none=Button("取消 / None",()=>SetVisibleSelection(false));
+        all.Width=150;none.Width=150;
+        var cooked=Button("内联 / IoStore",()=>{using var window=new CookedForm(game.Text.Trim(),aesKey);window.ShowDialog(this);});cooked.Width=190;
+        var assign=Button("分配 / Assign",()=>{using var d=new OpenFileDialog{Filter="TTF / OTF|*.ttf;*.otf"};if(d.ShowDialog(this)==DialogResult.OK){foreach(var p in chosen)perFont[p]=d.FileName;Append(T("Assigned font to checked resources.","已为勾选的资源分配字体。"));}});assign.Width=180;
+        listBar.Controls.AddRange(new Control[]{all,none,cooked,assign,protectIcons});listPanel.Controls.Add(detail);listPanel.Controls.Add(listBar);
+        disabled.AddRange(new Control[]{assign,protectIcons});
+        disabled.AddRange(new Control[]{all,none,cooked});
+        targets.FormattingEnabled=true;targets.Format+=(_,e)=>{if(e.ListItem is string path)e.Value=Path.GetFileName(path);};
+        targets.SelectedIndexChanged+=(_,_)=>{if(targets.SelectedItem is string path)detail.Text=path+Environment.NewLine+string.Join("; ",report?.Fonts.GetValueOrDefault(path)?.Select(s=>Path.GetFileName(s.Pak))??Array.Empty<string>())+" | "+perFont.GetValueOrDefault(path,font.Text);};
         targets.ItemCheck += (_, e) =>
         {
             if (filling) return;
@@ -120,13 +133,13 @@ public sealed class MainForm : Form
         var footer = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, Margin = Padding.Empty };
         footer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100)); footer.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 80));
         footer.Controls.Add(status);
-        var version = Label(); version.Text = "v0.5.1"; version.ForeColor = Color.Gray; version.TextAlign = ContentAlignment.MiddleRight; footer.Controls.Add(version);
+        var version = Label(); version.Text = "v0.6"; version.ForeColor = Color.Gray; version.TextAlign = ContentAlignment.MiddleRight; footer.Controls.Add(version);
         layout.Controls.Add(footer, 0, 11);
         disabled.AddRange(new Control[] { game, font, filter, gameBrowse, fontBrowse, simplified, traditional, english, targets, advanced, scanButton, buildButton, installButton, restoreButton, exportButton, language, showEngine, remember });
         try
         {
             string settings = Path.Combine(FontService.DataRoot, "settings.json");
-            if (File.Exists(settings))
+            if (loadSettings && File.Exists(settings))
             {
                 var saved = JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(settings));
                 if (saved != null) { game.Text = saved.GetValueOrDefault("game", game.Text); font.Text = saved.GetValueOrDefault("font", font.Text); }
@@ -135,7 +148,7 @@ public sealed class MainForm : Form
         catch (Exception ex) when (ex is IOException or JsonException) { Append("设置读取失败 / Could not read saved settings: " + ex.Message); }
         game.AutoCompleteMode = AutoCompleteMode.SuggestAppend; game.AutoCompleteSource = AutoCompleteSource.CustomSource;
         if (!string.IsNullOrWhiteSpace(game.Text)) game.AutoCompleteCustomSource.Add(game.Text);
-        game.TextChanged += (_, _) => { report = null; chosen.Clear(); FillTargets(); };
+        game.TextChanged += (_, _) => { report = null; chosen.Clear();perFont.Clear(); FillTargets(); };
         FormClosing += (_, e) => { if (busy) { e.Cancel = true; Append(T("Please wait until the operation finishes.", "请等待当前操作完成。")); } };
         SelectLanguage(true);
         Append(T("Select a game and font, then scan. Suggested targets can be adjusted manually.", "选择游戏与新字体，先扫描；可手动调整自动勾选的目标。"));
@@ -198,7 +211,7 @@ public sealed class MainForm : Form
         showEngine.Text = T("Engine fonts", "显示引擎字体"); remember.Text = T("Save mapping", "记住选择");
         UpdateSelectionSummary();
         var limit = Controls.Find("limit", true).First();
-        limit.Text = T("Output depends on font storage. This version replaces standalone PAK fonts; see the scan log for limitations.", "按字体实际存储方式决定输出；本版可替换 PAK 独立字体，其他类型请查看扫描日志。");
+        limit.Text = T("Standalone fonts: scan above. Inline FontFace / IoStore: use the separate workflow; engine version is required.", "独立字体在此扫描；内联 FontFace / IoStore 请使用上方专用窗口，并确认引擎版本。");
         status.Text = T("Ready", "就绪");
     }
     void Append(string text) { log.AppendText($"[{DateTime.Now:HH:mm:ss}] {text}{Environment.NewLine}"); log.ScrollToCaret(); }
@@ -253,6 +266,12 @@ public sealed class MainForm : Form
         if (chosen.Count != 1 || !chosen.Single().Contains("_TC_")) throw new InvalidOperationException("Traditional selection mismatch.");
         showEngine.Checked = true;
         if (!targets.Items.Cast<string>().Any(LanguageMap.IsEngine)) throw new InvalidOperationException("Show Engine toggle failed.");
+        filter.Text="_SC_";SetVisibleSelection(true);
+        if(chosen.Count!=2)throw new InvalidOperationException("Select visible must retain hidden selections.");
+        SetVisibleSelection(false);
+        if(chosen.Count!=1 || !chosen.Single().Contains("_TC_"))throw new InvalidOperationException("Clear visible must preserve hidden selections.");
+        filter.Clear();
+        if(targets.Items.Count>0 && targets.GetItemText(targets.Items[0])!=Path.GetFileName((string)targets.Items[0]))throw new InvalidOperationException("List must show readable filenames.");
     }
     void FillTargets()
     {
@@ -263,11 +282,19 @@ public sealed class MainForm : Form
         targets.EndUpdate(); filling = false;
         UpdateSelectionSummary();
     }
+    void SetVisibleSelection(bool value)
+    {
+        for(int i=0;i<targets.Items.Count;i++)targets.SetItemChecked(i,value);
+        UpdateSelectionSummary();
+    }
     async void Run(string command)
     {
         if (busy) return;
         string root = game.Text.Trim().Trim('"'), file = font.Text.Trim().Trim('"');
         string[] selection = chosen.ToArray();
+        var mapped=selection.ToDictionary(p=>p,p=>perFont.GetValueOrDefault(p,file),StringComparer.OrdinalIgnoreCase);
+        bool protect=protectIcons.Checked;
+        if(string.IsNullOrWhiteSpace(file)&&mapped.Count>0)file=mapped.Values.First();
         if (command is "build" or "install" or "export" && report == null) { Append(T("Scan the game first.", "请先扫描游戏目录。")); return; }
         if (command == "export" && selection.Length == 0) { Append(T("Check at least one font to export.", "请先勾选要导出的字体。")); return; }
         busy = true; disabled.ForEach(c => c.Enabled = false); status.Text = T("Working…", "正在处理…");
@@ -299,7 +326,7 @@ public sealed class MainForm : Form
                 var current = report!;
                 await Task.Run(() =>
                 {
-                    var manifest = FontService.Build(current, file, selection, aesKey, log);
+                    var manifest = FontService.Build(current, file, selection, aesKey, log,mapped,protect);
                     if (command == "install") FontService.Install(manifest, current, log);
                 });
             }

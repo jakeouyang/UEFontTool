@@ -12,6 +12,30 @@ Windows 桌面工具：扫描虚幻引擎游戏中的独立字体，选择新 TT
 从 **Releases** 下载 `UEFontTool-v版本-win-x64.zip`，完整解压后运行 `UEFontTool.exe`。请保留同目录的 `tools` 文件夹。自带 .NET 运行时，不需要 Python 或完整 Unreal Editor。
 GitHub 自动生成的 Source code 压缩包是源码，不是可直接运行的软件。
 
+## v0.6：内联 FontFace 与 IoStore（实验性）
+
+点击列表上方“内联 / IoStore”打开专用窗口，确认引擎版本，扫描后勾选目标并“分配字体”。每个目标可以使用不同的新字体。FFRS 本机样本使用 UE5_6，CodeVein2 使用 UE5_4。输出名不含扩展名，必须以 `_P` 结尾；整组 `.pak/.utoc/.ucas` 保持同名，默认 `zz_UEFontTool_P`。
+
+使用固定版本 retoc v0.1.5 与 UAssetAPI 1.1.0 完成 IoStore → legacy → FontFace 重写 → IoStore，无需 UE 编辑器。更新字节数组长度、导出长度和偏移；重读字体检查 SHA-256、校验容器，再反向提取比对导出字节。输出位于 `data/cooked/`，只生成，不自动安装容器组。手动测试只复制同名的容器文件，不复制分析目录。
+
+FFRS：76 个提取项、68 个不同资源、8 个支持重写的内联 FontFace；用不同大小的新字体完成 UE5.6 往返校验。CodeVein2：100 个资源、40 个内联 FontFace，完成 UE5.4 往返校验。以上是结构与字节验证，**本轮尚未验证游戏内外观**。FFRS 已识别同一路径的基础包与 `_1_P` 补丁包，并报告 retoc 选中的补丁来源。
+
+默认拒绝丢失私用区字形的替换。CodeVein2 一个中文字体有 106 个新字体缺少的私用字符；它们可能是图标，也可能是其他自定义字符。可以保持该目标原字体，或明确允许丢失。**尚未实现原图标轮廓合并或自动补字**。清单记录缺失码点，普通 CJK 缺字仍报告而不合并。
+
+静态导入引用、字体类型、容器来源与候选版本会显示在详情中。它们不证明某个运行时菜单正在使用该字体，retoc 的选择也不能保证与额外目录、加载器的实际挂载顺序相同。复合字体属性仅在版本/映射允许解析时导出；未版本化资源可选择匹配的 `.usmap`。此次两个样本中部分 Font 仍未解析出字符范围与回退属性，报告会明确标记。无需属性映射即可重写已识别的终端 FontFace 数组。
+
+支持带长度的终端 SFNT 字节数组及实测四字节零尾部；不支持外部 `.ubulk/.uptnl` 重写、其他所有原生布局、离线图集或全部 UE 游戏。外部 bulk 或无法验证的布局会停止。默认只提取路径包含 `Font` 的资源，尚未实现全游戏 UI 引用遍历。
+
+主列表“分配 / Assign”可为勾选的独立字体指定新字体，未分配的使用顶部默认字体；“保护私用字形 / PUA”默认开启，可按需关闭。主列表增加“全选 / All”“取消 / None”，仅操作当前筛选结果，隐藏选择保持不变。短文件名下方显示完整路径和来源；专用窗口使用可调列宽、换行和滚动表格。
+
+```text
+UEFontTool.exe scan-cooked "GAME_DIR" UE5_6 "EMPTY_ANALYSIS_DIR" Font
+UEFontTool.exe build-cooked "cooked-plan.json" "EMPTY_OUTPUT_DIR"
+UEFontTool.exe build-mapped "loose-font-plan.json" "build-report.json"
+```
+
+计划示例见 [cooked-plan.example.json](docs/cooked-plan.example.json)。`Replacements` 逐路径映射字体；`build-cooked` 使用 `.uasset`，`build-mapped` 使用独立字体路径并默认保护私用字形。CLI 使用 `UEFONTTOOL_AES_KEY` 及可选 `UEFONTTOOL_USMAP`；IoStore 当前只使用第一个 AES 密钥，没有按 GUID 匹配多密钥。开发前还需执行 `./scripts/Get-Retoc.ps1`，发布脚本自动获取并校验该依赖。
+
 ## 使用
 
 1. 选择游戏根目录或准确的 `Content/Paks` 目录，以及新 TTF/OTF 字体。
@@ -33,11 +57,11 @@ GitHub 自动生成的 Source code 压缩包是源码，不是可直接运行的
 | 黑神话：悟空特殊 PAK | 已适配 footer 与条目布局，输出自动转换并经游戏内验证（未压缩条目） |
 | DragonSword: Awakening 特殊 PAK | 已适配观测到的 v101 加密/混淆索引；输出标准 V11 PAK |
 | Engine 回退字体 | 可手动显示与勾选，默认不自动替换 |
-| 内嵌 FontFace / IoStore 内部资源重写 | **尚不支持** |
+| 内嵌 FontFace / IoStore 重写 | 实验性支持，详见 v0.6 范围 |
 | 离线字体图集、TTC、自动补字 | **尚不支持** |
 
 不能保证所有 UE4/UE5 游戏兼容。容器读取成功、打包成功与游戏内加载生效是不同的验证阶段。
-字体目录中的 `.uasset` 仅作为候选提示；IoStore 仅统计容器数量，不解析其内部字体资源。
+字体目录中的 `.uasset` 仅作为候选提示；主扫描仍只统计 IoStore；专用窗口转换并分析字体资源。
 
 本机样本曾验证悟空、霍格沃茨之遗、堕落之主的独立字体提取与打包。后两款存在 IoStore，但测试目标仍在 PAK 中。DragonSword 样本的 54 个原版 v101 PAK 和 6 个标准 Mod PAK 均可扫描，找到 45 个独立字体（含 Engine），并完成一个字体目标的提取、构建和回读。这些记录**不等于游戏内视觉验证**，游戏更新也可能改变格式。
 

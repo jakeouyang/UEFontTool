@@ -6,6 +6,30 @@ A Windows desktop tool for scanning standalone fonts in Unreal Engine games and 
 
 ![English interface](docs/ui-en.png)
 
+## v0.6: inline FontFace and IoStore (experimental)
+
+Open **内联 / IoStore** above the list, choose the engine version, scan, select rows and assign replacement fonts. Each target can use a different font. Tested versions: FFRS UE5_6 and CodeVein2 UE5_4. The output basename must end in `_P`, without an extension. All `.pak/.utoc/.ucas` files share that basename; default: `zz_UEFontTool_P`.
+
+Pinned retoc v0.1.5 and UAssetAPI 1.1.0 perform IoStore → legacy → FontFace rewrite → IoStore without Unreal Editor. Font array lengths and export sizes/offsets are updated. Fonts are hash-checked, containers verified, then converted back for export-byte comparison. Output is under `data/cooked/`. This workflow builds only; installation/restoration of container groups is not automated. Copy only matching container files when manually testing, not analysis directories.
+
+FFRS: 76 extracted entries, 68 distinct resources and eight supported inline faces; UE5.6 roundtrip passed with a differently sized font. CodeVein2: 100 resources and 40 supported inline faces; UE5.4 roundtrip passed. **These are structural/byte checks, not in-game visual confirmations.** FFRS analysis distinguished base and `_1_P` candidates and reported retoc's selected patch source.
+
+Private-use glyph loss is rejected by default. One CodeVein2 Chinese font contains 106 private-use characters absent from the replacement; they may be icons or other custom characters. Keep the original target or explicitly allow the loss. **Automatic outline merging, icon reconstruction and missing-glyph generation are not implemented.** Missing codepoints are recorded; ordinary missing CJK characters are reported, not merged.
+
+Details include static imports, font classes and selected/candidate containers. Static references do not prove runtime widget use; retoc's selected source is not a guarantee of game mount order across extra directories/loaders. Composite properties are exported when version/mappings permit. A matching `.usmap` can be selected for unversioned properties. Some Font exports in these samples still have unresolved character-range/fallback properties, explicitly marked in reports. Supported terminal FontFace arrays can be rewritten without those property mappings.
+
+Supported layouts are bounded terminal length-prefixed SFNT arrays, including the observed four-byte zero suffix. External `.ubulk/.uptnl`, other native layouts, offline atlases and universal UE compatibility remain unsupported and are refused when detected. Default extraction filters paths containing `Font`; full-game UI reference traversal is not implemented.
+
+Assign in the main list maps checked loose resources to a replacement; unassigned targets use the default font above. PUA protection is enabled by default and can be disabled. The main list has All/None for the current filter, preserving hidden selections. Short filenames are shown with complete paths/sources below. The separate grid supports resizing, wrapping and scrolling.
+
+```text
+UEFontTool.exe scan-cooked "GAME_DIR" UE5_6 "EMPTY_ANALYSIS_DIR" Font
+UEFontTool.exe build-cooked "cooked-plan.json" "EMPTY_OUTPUT_DIR"
+UEFontTool.exe build-mapped "loose-font-plan.json" "build-report.json"
+```
+
+See [cooked-plan.example.json](docs/cooked-plan.example.json). `Replacements` maps each resource to a font. `build-cooked` targets `.uasset`; `build-mapped` targets loose fonts with private-use protection by default. CLI variables: `UEFONTTOOL_AES_KEY` and optional `UEFONTTOOL_USMAP`. IoStore currently uses the first AES key, without GUID-to-key routing. Run `./scripts/Get-Retoc.ps1` before development builds; the release script acquires and verifies it automatically.
+
 ## Download and use
 
 Download `UEFontTool-vVERSION-win-x64.zip` from **Releases**, extract the complete archive, and run `UEFontTool.exe`. Keep the adjacent `tools` folder. The .NET runtime is included; Python and Unreal Editor are not required. GitHub's automatic Source code downloads are not runnable builds.
@@ -29,10 +53,10 @@ Settings, output and installation records live in the adjacent `data/` folder. E
 | Black Myth: Wukong custom PAKs | Footer and entry layout adapter with automatic output conversion, confirmed in game (uncompressed entries) |
 | DragonSword: Awakening custom PAKs | Adapter for observed v101 encrypted/masked indexes; generates standard V11 PAKs |
 | Engine fallback fonts | Optional manual selection; excluded from automatic matching |
-| Embedded FontFace / IoStore resource rewriting | **Not implemented** |
+| Embedded FontFace / IoStore rewriting | Experimental; see v0.6 scope above |
 | Offline font atlases, TTC, automatic glyph fallback generation | **Not implemented** |
 
-This is not universal UE4/UE5 support. Reading an archive, building a valid package, and seeing the replacement in-game are separate validation stages. Font-folder `.uasset` files are only reported as candidates. IoStore containers are counted, but their internal font resources are not inspected.
+This is not universal UE4/UE5 support. Reading an archive, building a valid package, and seeing the replacement in-game are separate validation stages. Font-folder `.uasset` files are only reported as candidates. The main scan counts IoStore; the separate workflow converts and inspects font resources.
 
 Local samples of Wukong, Hogwarts Legacy, and Lords of the Fallen have passed standalone font extraction and package readback. The latter two use IoStore, but the tested fonts were in PAKs. A DragonSword sample scanned 54 original v101 archives plus six standard mod PAKs, found 45 standalone fonts including Engine fonts, and passed extraction/build/readback for one target. These are **not visual in-game confirmations**, and updates may change layouts.
 

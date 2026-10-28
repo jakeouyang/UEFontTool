@@ -36,6 +36,8 @@ public sealed class BuildManifest
     public bool RuntimeVerified { get; set; }
     public bool LegacyPythonPackage { get; set; }
     public string OutputPakVersion { get; set; } = "";
+    public Dictionary<string,FontInfo> Replacements { get; set; } = new();
+    public Dictionary<string,string[]> MissingCodepoints { get; set; } = new();
 }
 
 public static class FontService
@@ -166,7 +168,7 @@ public static class FontService
         }
         return exported;
     }
-    public static BuildManifest Build(ScanReport scan, string fontFile, string[] targets, string? keyFile, Action<string> log)
+    public static BuildManifest Build(ScanReport scan, string fontFile, string[] targets, string? keyFile, Action<string> log, Dictionary<string,string>? mappings = null, bool protectPrivateUse = false)
     {
         targets = targets.Select(PakTools.SafePath).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
         if (targets.Length == 0) throw new InvalidDataException("请扫描并勾选至少一个字体 / Scan and select at least one font.");
@@ -177,8 +179,11 @@ public static class FontService
         var keys = PakTools.Keys(keyFile);
         var readers = new Dictionary<string, WukongPak>();
         var prefixed = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
+        var payloads = new Dictionary<string,byte[]>(StringComparer.OrdinalIgnoreCase);
         foreach (var target in targets)
         {
+            byte[] targetBytes = mappings != null ? File.ReadAllBytes(mappings[target]) : bytes;
+            var targetFont = InspectFont(targetBytes); payloads[target]=targetBytes; manifest.Replacements[target]=targetFont.Info;
             if (!scan.Fonts.TryGetValue(target, out var sources)) throw new InvalidDataException("Target absent from scan: " + target);
             log("校验原字体 / Verify original: " + Path.GetFileName(target));
             foreach (var source in sources)
@@ -192,7 +197,9 @@ public static class FontService
                 else original = PakTools.ReadWithKeys(keys, "get", source.Pak, target);
                 var inspected = InspectFont(original);
                 prefixed[target] = prefixed.GetValueOrDefault(target) || inspected.Base != 0;
-                var missing = inspected.Map.Except(replacement.Map).ToArray();
+                var missing = inspected.Map.Except(targetFont.Map).ToArray();
+                manifest.MissingCodepoints[target]=missing.Select(c=>$"U+{c:X}").ToArray();
+                if(protectPrivateUse && missing.Any(CookedFonts.IsPrivateUse)) throw new InvalidDataException("Replacement loses private-use glyphs; keep original or explicitly allow the loss: "+target);
                 int cjk = missing.Count(c => c is >= 0x3400 and <= 0x9fff or >= 0x20000 and <= 0x323af);
                 manifest.VerifiedOriginals.Add(new(target, source.Pak, inspected.Info, missing.Length, cjk));
                 log($"字符覆盖差异 / Coverage difference: {missing.Length}; 汉字 / CJK: {cjk}（不代表游戏实际使用这些字 / actual game usage unknown）");
@@ -207,7 +214,7 @@ public static class FontService
             var staged = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase);
             foreach (var target in targets)
             {
-                byte[] payload = prefixed.GetValueOrDefault(target) ? WrapSizePrefixed(bytes) : bytes;
+                byte[] payload = prefixed.GetValueOrDefault(target) ? WrapSizePrefixed(payloads[target]) : payloads[target];
                 staged[target] = payload;
                 string destination = Path.Combine(stage, target.Replace('/', Path.DirectorySeparatorChar));
                 Directory.CreateDirectory(Path.GetDirectoryName(destination)!); File.WriteAllBytes(destination, payload);
