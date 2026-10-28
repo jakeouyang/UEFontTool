@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 
 namespace UEFontTool;
 
@@ -30,8 +30,8 @@ public static class GuideBuild
             else throw new InvalidDataException("未选择可替换的字体 / No font targets selected.");
             var artifacts=Directory.GetFiles(ready).Select(p=>new{File=Path.GetFileName(p),Sha256=PakTools.HashFile(p)}).ToArray();
             string installFolder=Path.Combine(scan.Paks,"~mods");
-            File.WriteAllText(Path.Combine(ready,"INSTALL.txt"),"字体 MOD 已生成并通过文件检查 / Font mod generated and readback checked\r\n\r\n1. 正常退出游戏 / Exit the game.\r\n2. 将本文件夹内所有 .pak/.utoc/.ucas 一起复制到 / Copy every matching .pak/.utoc/.ucas file together to:\r\n"+installFolder+"\r\n3. 不要与其他修改相同字体的 MOD 同时使用 / Avoid other mods editing the same fonts.\r\n4. 启动游戏检查菜单和字幕 / Launch the game and check menus/subtitles.\r\n\r\n卸载：只删除此次复制的同名文件 / Uninstall: remove only the files copied for this mod.\r\n不要复制上级分析目录；本轮未自动安装 / Do not copy the parent analysis directories. This build has not been auto-installed.\r\n");
-            File.WriteAllText(Path.Combine(destination,"result.json"),JsonSerializer.Serialize(new{Artifacts=artifacts,Targets=selected.Select(t=>new{t.Path,t.Inline,Font=t.FontOverride??defaultFont}),RuntimeVerified=false},FontService.Json));
+            File.WriteAllText(Path.Combine(ready,"INSTALL.txt"),"字体 MOD / Font mod\r\n\r\n推荐在主界面使用“生成并安装”和“还原字体”，工具会自动检查冲突、安装配套文件并记录备份。\r\nUse Build and install / Restore fonts in the main window for conflict checking, grouped installation and backups.\r\n\r\n若选择“仅生成”，本目录内同名的 .pak/.utoc/.ucas 需作为一组安装，不要复制分析目录。\r\nIf Build only was selected, matching .pak/.utoc/.ucas files form one installable group. Do not copy analysis directories.\r\n\r\n安装目录 / Destination:\r\n"+installFolder+"\r\n\r\n启动游戏检查菜单和字幕。文件校验通过不等于游戏内外观已验证。\r\nCheck menus/subtitles in game. File verification does not confirm runtime appearance.\r\n");
+            File.WriteAllText(Path.Combine(destination,"result.json"),JsonSerializer.Serialize(new{Game=Path.GetFullPath(game),Name=name,Artifacts=artifacts,Targets=selected.Select(t=>new{t.Path,t.Inline,Font=t.FontOverride??defaultFont}),RuntimeVerified=false},FontService.Json));
         }
         catch(InvalidDataException ex) when(ex.Message.Contains("private-use",StringComparison.OrdinalIgnoreCase))
         {throw new InvalidDataException("新字体缺少原字体中的特殊符号。为避免按键图标等变成方框，已停止生成。请在列表取消该字体，或换用覆盖更完整的新字体。专家模式可查看详细缺字。 / Replacement loses private-use symbols; build stopped to protect possible icons. Uncheck that target or choose a more complete font.\r\n"+ex.Message);}

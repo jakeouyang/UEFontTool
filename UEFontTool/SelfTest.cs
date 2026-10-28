@@ -1,4 +1,4 @@
-namespace UEFontTool;
+﻿namespace UEFontTool;
 
 public static class SelfTest
 {
@@ -27,6 +27,11 @@ public static class SelfTest
         Assert(CookedFonts.Locate(inline)?.Length==testFont.Length,"Locate bounded terminal inline font with padding");
         BitConverter.GetBytes(testFont.Length-1).CopyTo(inline,16);
         Assert(CookedFonts.Locate(inline)==null,"Reject inconsistent inline byte-array length");
+        using var nativeBytes=new MemoryStream();using(var nativeWriter=new BinaryWriter(nativeBytes,System.Text.Encoding.UTF8,true)){nativeWriter.Write((ushort)0x0300);nativeWriter.Write(6);nativeWriter.Write(System.Text.Encoding.ASCII.GetBytes("a.ttf\0"));nativeWriter.Write(0);nativeWriter.Write(1);nativeWriter.Write(0);}
+        byte[] native=nativeBytes.ToArray();Assert(CookedFonts.SupportedExternal(native,"UE5_6"),"Recognize bounded external UE5.6 FontFace layout");
+        byte[] converted=CookedFonts.InlineExternal(native,"UE5_6",testFont);Assert(CookedFonts.Locate(converted)?.Length==testFont.Length&&converted[14]==2,"Convert external FontFace to inline and set LoadingPolicy");
+        byte[] corruptExternal=(byte[])native.Clone();corruptExternal[11]=1;Assert(!CookedFonts.SupportedExternal(corruptExternal,"UE5_6"),"Reject unterminated external FontFace source filename");
+        Assert(!CookedFonts.SupportedExternal(native,"UE5_4"),"Do not guess external FontFace layouts for another engine version");
         byte[] fixtureKey = Enumerable.Range(0, 32).Select(i => (byte)i).ToArray();
         Assert(PakTools.Keys("0X" + Convert.ToHexString(fixtureKey)).Single().SequenceEqual(fixtureKey), "Parse prefixed AES hex input");
         Assert(PakTools.Keys(Convert.ToBase64String(fixtureKey)).Single().SequenceEqual(fixtureKey), "Parse AES Base64 input");
@@ -81,6 +86,7 @@ public static class SelfTest
             WukongPakWriter.Convert(wukong);
             Assert(WukongPak.Detect(wukong), "Convert to the Wukong footer layout");
             Assert(System.Text.Encoding.UTF8.GetString(new WukongPak(wukong, new()).Extract("font.ufont")) == "test payload", "Round-trip the Wukong layout with runtime data offsets");
+            Assert(FontService.ListPak(wukong).Contains("font.ufont")&&FontService.ListPak(encrypted,Convert.ToHexString(fixtureKey)).Contains("font.ufont")&&FontService.ListPak(dragon,Convert.ToHexString(fixtureKey)).Contains("font.ufont"),"Read custom and encrypted existing font mods for conflict checking");
             var exportScan = new ScanReport { Game = Path.Combine(root, "game"), Paks = paks };
             exportScan.Fonts["font.ufont"] = new() { new FontSource(artifact, false) };
             string exportDir = Path.Combine(root, "export"); Directory.CreateDirectory(exportDir);
@@ -128,6 +134,21 @@ public static class SelfTest
             File.Copy(artifact, manifest.InstalledPath!, true);
             FontService.Restore(scan.Game, _ => { });
             Assert(!File.Exists(manifest.InstalledPath), "Restore exact owned file");
+            string groupBuild=Path.Combine(root,"group-build"),ready=Path.Combine(groupBuild,"ReadyToInstall"),groupName="zz_TestGroup_P";Directory.CreateDirectory(ready);
+            File.Copy(artifact,Path.Combine(ready,groupName+".pak"));File.WriteAllText(Path.Combine(ready,groupName+".utoc"),"test index");File.WriteAllText(Path.Combine(ready,groupName+".ucas"),"test data");
+            var group=new BuiltMod{Game=scan.Game,Name=groupName,Targets=new[]{new ModTarget("font.ufont",false)},Artifacts=Directory.GetFiles(ready).Select(f=>new ModArtifact(Path.GetFileName(f),PakTools.HashFile(f))).ToArray()};
+            File.WriteAllText(Path.Combine(groupBuild,"result.json"),System.Text.Json.JsonSerializer.Serialize(group,FontService.Json));
+            string thirdParty=Path.Combine(mods,"OtherFont_P.pak");File.Copy(artifact,thirdParty);string thirdPartyHash=PakTools.HashFile(thirdParty);
+            Assert(ModInstaller.Conflicts(scan.Game,group).Contains(thirdParty),"Detect existing font mod conflicts before group installation");
+            Reject(()=>ModInstaller.Install(scan.Game,groupBuild),"Block conflict installation without explicit suspension");
+            ModInstaller.Install(scan.Game,groupBuild,true);
+            Assert(group.Artifacts.All(f=>File.Exists(Path.Combine(mods,f.File)))&&!File.Exists(thirdParty),"Install all three files and back up the conflicting mod as a group");
+            ModInstaller.Install(scan.Game,groupBuild);
+            Assert(group.Artifacts.All(f=>PakTools.HashFile(Path.Combine(mods,f.File))==f.Sha256),"Safely replace an owned installation without losing suspended-mod records");
+            string changed=Path.Combine(mods,groupName+".ucas");File.AppendAllText(changed,"changed");Reject(()=>ModInstaller.Restore(scan.Game),"Refuse group restoration when any installed hash changed");
+            Assert(group.Artifacts.All(f=>File.Exists(Path.Combine(mods,f.File))),"A failed restore leaves every installed file intact");File.Copy(Path.Combine(ready,groupName+".ucas"),changed,true);
+            ModInstaller.Restore(scan.Game);
+            Assert(group.Artifacts.All(f=>!File.Exists(Path.Combine(mods,f.File)))&&PakTools.HashFile(thirdParty)==thirdPartyHash,"Restore all owned files and the exact suspended third-party mod");
         }
         finally { Directory.Delete(root, true); }
         File.WriteAllLines(report, results);

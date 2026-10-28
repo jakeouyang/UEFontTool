@@ -59,6 +59,7 @@ public static class IoStoreFonts
         }
         return result;
     }
+    public static string[] Resources(string container)=>Origins(Retoc("list",container,"--path")).Select(p=>p.Path).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
     public static void Build(string planFile, string output)
     {
         var plan = JsonSerializer.Deserialize<CookedPlan>(File.ReadAllText(planFile))!; Name(plan.OutputName); CookedFonts.Version(plan.Version);
@@ -68,10 +69,18 @@ public static class IoStoreFonts
         string original=Path.Combine(output,"original"),modified=Path.Combine(output,"modified"),verified=Path.Combine(output,"verified");
         Extract(plan.Game,original,plan.Version,plan.Filter);
         var changes=new List<object>();
+        ScanReport? externalScan=null;
         foreach(var (path,font) in plan.Replacements)
         {
             string safe=PakTools.SafePath(path); if (!safe.EndsWith(".uasset",StringComparison.OrdinalIgnoreCase)) throw new InvalidDataException("Expected a uasset path.");
-            changes.Add(CookedFonts.Rewrite(Path.Combine(original,safe),Path.Combine(modified,safe),plan.Version,font,plan.AllowPrivateUseLoss));
+            var inspection=CookedFonts.Inspect(Path.Combine(original,safe),plan.Version);
+            byte[]? externalBytes=null;
+            if(inspection.ExternalFaces.Count>0)
+            {
+                externalScan??=FontService.Scan(plan.Game,Environment.GetEnvironmentVariable("UEFONTTOOL_AES_KEY"),_=>{});
+                externalBytes=FontService.ReadOriginal(externalScan,Path.ChangeExtension(safe,".ufont"),Environment.GetEnvironmentVariable("UEFONTTOOL_AES_KEY"));
+            }
+            changes.Add(CookedFonts.Rewrite(Path.Combine(original,safe),Path.Combine(modified,safe),plan.Version,font,plan.AllowPrivateUseLoss,externalBytes));
             foreach(string ext in new[]{".ubulk",".uptnl"})
             { string side=Path.ChangeExtension(Path.Combine(original,safe),ext); if(File.Exists(side)) throw new NotSupportedException("External bulk data is not yet rewritten; refusing to package it."); }
         }

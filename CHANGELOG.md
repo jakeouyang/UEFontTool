@@ -1,5 +1,15 @@
 # Changelog / 更新记录
 
+## v0.8.0
+
+- Fix FFRS PAK-only output by converting the observed external UE5.6 FontFace layout to Inline and generating a matching PAK/UTOC/UCAS group without Unreal Editor.
+- Simplify the beginner interface with separate Settings, wrapping/scrolling diagnostics, readable font columns and Build and install / Restore fonts / More actions.
+- Add verified group installation/restoration, game-running checks, existing PAK/IoStore font conflict detection and explicit suspension/restoration of conflicting mod groups.
+- Preserve backups when updating owned installations; refuse restoration if any installed file or suspended backup has changed. Read custom/encrypted PAK mods through the existing adapters.
+- FFRS (five Simplified Chinese targets) and CodeVein2 (three targets, required `_P` basename) passed container roundtrips and real-file install/restore checks. The user confirmed both replacements in game on 2026-10-29.
+- 更新新手流程、独立设置与双语排版；自动安装和还原整组文件，冲突 MOD 经明确选择后备份暂存，还原时恢复；补齐 FFRS 外部 FontFace 转内联与 IoStore 输出。两款样本均经用户确认游戏内生效，测试后原有 MOD 哈希核对一致。
+- Unsupported native layouts, offline atlases and automatic glyph/icon merging remain outside the supported scope.
+
 ## v0.7.0
 
 - Guided beginner interface is now the default: game/font/language, automatic storage detection, recommendations and build.

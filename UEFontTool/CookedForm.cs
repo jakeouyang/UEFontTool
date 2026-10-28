@@ -1,4 +1,4 @@
-namespace UEFontTool;
+﻿namespace UEFontTool;
 
 public sealed class CookedForm : Form
 {
@@ -35,7 +35,7 @@ public sealed class CookedForm : Form
         grid.SelectionChanged+=(_,_)=>{if(grid.CurrentRow?.Tag is CookedReport r)details.Text=System.Text.Json.JsonSerializer.Serialize(r,FontService.Json);};
         FormClosing+=(_,e)=>{if(busy)e.Cancel=true;};
     }
-    void Check(bool value){foreach(DataGridViewRow r in grid.Rows)if(r.Tag is CookedReport report && report.Faces.Count>0)r.Cells[0].Value=value;}
+    void Check(bool value){foreach(DataGridViewRow r in grid.Rows)if(r.Tag is CookedReport report && (report.Faces.Count>0||report.ExternalFaces.Count>0))r.Cells[0].Value=value;}
     async void Run(bool build)
     {
         if(busy)return;busy=true;grid.EndEdit();string v=version.Text,n=name.Text;bool pua=allow.Checked;string? old=Environment.GetEnvironmentVariable("UEFONTTOOL_AES_KEY"),oldMap=Environment.GetEnvironmentVariable("UEFONTTOOL_USMAP");

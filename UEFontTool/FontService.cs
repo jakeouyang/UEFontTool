@@ -58,6 +58,13 @@ public static class FontService
     {
         return (LanguageMap.Infer(target, profile) & languages) != 0;
     }
+    public static string[] ListPak(string pak,string? key=null)
+    {
+        var keys=PakTools.Keys(key??Environment.GetEnvironmentVariable("UEFONTTOOL_AES_KEY"));
+        bool wukong=WukongPak.Detect(pak),dragon=WukongPak.DetectDragonSword(pak);
+        if(wukong||dragon)return new WukongPak(pak,keys,dragon).Entries.Keys.ToArray();
+        return Encoding.UTF8.GetString(PakTools.ReadWithKeys(keys,"list",pak)).Split('\n',StringSplitOptions.TrimEntries|StringSplitOptions.RemoveEmptyEntries).Select(PakTools.SafePath).ToArray();
+    }
     public static ScanReport Scan(string game, string? keyFile, Action<string> log)
     {
         string paks = LocatePaks(game);
@@ -110,7 +117,7 @@ public static class FontService
         {
             try
             {
-                foreach (var path in PakTools.List(pak).Where(result.Fonts.ContainsKey))
+                foreach (var path in ListPak(pak).Where(result.Fonts.ContainsKey))
                 {
                     if (!result.Conflicts.TryGetValue(path, out var mods)) result.Conflicts[path] = mods = new();
                     mods.Add(pak);
@@ -139,6 +146,13 @@ public static class FontService
         if (font[0] == 0x00 && font[1] == 0x01 && font[2] == 0x00 && font[3] == 0x00) return ".ttf";
         if (font[0] == 0x74 && font[1] == 0x72 && font[2] == 0x75 && font[3] == 0x65) return ".ttf";
         return ".ufont";
+    }
+    public static byte[] ReadOriginal(ScanReport scan,string target,string? key)
+    {
+        if(!scan.Fonts.TryGetValue(target,out var sources)||sources.Count==0)throw new InvalidDataException("Original font not found: "+target);
+        var source=sources.OrderByDescending(s=>Path.GetFileNameWithoutExtension(s.Pak).EndsWith("_P",StringComparison.OrdinalIgnoreCase)).ThenByDescending(s=>s.Pak,StringComparer.OrdinalIgnoreCase).First();
+        var keys=PakTools.Keys(key);
+        return source.Wukong||source.DragonSword?new WukongPak(source.Pak,keys,source.DragonSword).Extract(target):PakTools.ReadWithKeys(keys,"get",source.Pak,target);
     }
     public static int Export(ScanReport scan, string[] selection, string output, string? keyFile, Action<string> log)
     {

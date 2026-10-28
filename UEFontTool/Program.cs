@@ -18,6 +18,9 @@ internal static class Program
             switch (args)
             {
                 case ["--expert"]: Application.Run(new MainForm());break;
+                case ["install-guided",var game,var directory,.. var options]:ModInstaller.Install(game,directory,options.Contains("--suspend-conflicts"));break;
+                case ["restore-guided",var game]:ModInstaller.Restore(game);break;
+                case ["conflicts-guided",var game,var directory]:Console.WriteLine(JsonSerializer.Serialize(ModInstaller.Conflicts(game,ModInstaller.Load(directory,game)),FontService.Json));break;
                 case ["--test-guide",var game,var font,var output]:
                     using(var form=new GuidedForm(false))
                     {form.Shown+=async(_,_)=>{await form.TestAnalysis(game,font,output);form.Close();};Application.Run(form);}break;

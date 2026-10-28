@@ -133,7 +133,7 @@ public sealed class MainForm : Form
         var footer = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, Margin = Padding.Empty };
         footer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100)); footer.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 80));
         footer.Controls.Add(status);
-        var version = Label(); version.Text = "v0.7"; version.ForeColor = Color.Gray; version.TextAlign = ContentAlignment.MiddleRight; footer.Controls.Add(version);
+        var version = Label(); version.Text = "v0.8"; version.ForeColor = Color.Gray; version.TextAlign = ContentAlignment.MiddleRight; footer.Controls.Add(version);
         layout.Controls.Add(footer, 0, 11);
         disabled.AddRange(new Control[] { game, font, filter, gameBrowse, fontBrowse, simplified, traditional, english, targets, advanced, scanButton, buildButton, installButton, restoreButton, exportButton, language, showEngine, remember });
         try

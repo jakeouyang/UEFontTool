@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Text.RegularExpressions;
 
 namespace UEFontTool;
@@ -45,7 +45,7 @@ public static class GuideHints
             }
         }
         string? known=profile.ToUpperInvariant() switch{"FFRS"=>"UE5_6","CODEVEIN2"=>"UE5_4","PHOENIX"=>"UE4_27","LOTF2"=>"UE5_1",_=>null};
-        return known!=null?new(known,"使用已验证的游戏配置："+known,"Using a tested game profile: "+known):new(null,"无法自动确定引擎版本，请在高级选项中选择后重新检测","Engine version unknown; select it in Advanced and analyze again");
+        return known!=null?new(known,"使用已验证的游戏配置："+known,"Using a tested game profile: "+known):new(null,"无法自动确定引擎版本，请在“设置”中选择后重新检测","Engine version unknown; select it in Settings and detect again");
     }
     public static readonly string[] EngineVersions={"UE4_26","UE4_27","UE5_0","UE5_1","UE5_2","UE5_3","UE5_4","UE5_5","UE5_6","UE5_7"};
 }
