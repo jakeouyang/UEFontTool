@@ -13,6 +13,7 @@ public class DarkWindow : Form
     {
         FormBorderStyle=FormBorderStyle.None;BackColor=Color.Black;ForeColor=Color.Silver;Padding=new Padding(1);DoubleBuffered=true;
         caption.Controls.Add(captionText);
+        var picture=new PictureBox{Dock=DockStyle.Left,Width=40,BackColor=Color.Black};picture.Paint+=(_,e)=>{if(Icon!=null){int size=DeviceDpi*24/96;e.Graphics.DrawIcon(Icon,new Rectangle((picture.Width-size)/2,(picture.Height-size)/2,size,size));}};caption.Controls.Add(picture);picture.MouseDown+=DragWindow;captionText.Padding=new Padding(4,0,0,0);
         foreach(var button in new[]{minimize,maximize,close}){button.Dock=DockStyle.Right;caption.Controls.Add(button);}
         Controls.Add(caption);caption.AccessibleRole=AccessibleRole.TitleBar;
         minimize.Click+=(_,_)=>WindowState=FormWindowState.Minimized;maximize.Click+=(_,_)=>ToggleMaximize();close.Click+=(_,_)=>Close();
@@ -36,4 +37,15 @@ public class DarkWindow : Form
         bool left=point.X<grip,right=point.X>=ClientSize.Width-grip,top=point.Y<grip,bottom=point.Y>=ClientSize.Height-grip;
         m.Result=(IntPtr)(top?(left?13:right?14:12):bottom?(left?16:right?17:15):left?10:right?11:1);
     }
+}
+
+public sealed class FontMenuColors : ProfessionalColorTable
+{
+    public override Color MenuItemSelected=>Color.FromArgb(45,25,28);
+    public override Color MenuItemSelectedGradientBegin=>MenuItemSelected;
+    public override Color MenuItemSelectedGradientEnd=>MenuItemSelected;
+    public override Color MenuItemBorder=>Color.FromArgb(75,40,45);
+    public override Color MenuBorder=>Color.FromArgb(50,50,50);
+    public override Color MenuStripGradientBegin=>Color.Black;
+    public override Color MenuStripGradientEnd=>Color.Black;
 }

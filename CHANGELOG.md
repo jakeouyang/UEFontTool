@@ -1,5 +1,11 @@
 # Changelog / 更新记录
 
+## v0.8.3
+
+- Remove the duplicate in-content icon/title. Show the application icon beside the window title and expose language, GitHub and Settings in a traditional top menu bar.
+- Documentation previews no longer activate their window; refresh both language screenshots.
+- 移除内容区重复大标题，将图标移至软件标题左侧；语言切换、GitHub、设置改为顶部传统菜单。
+
 ## v0.8.2
 
 - Replace the default window chrome with a black title bar, retaining minimize, maximize/restore, close, caption dragging and edge resizing. Settings, diagnostics, conflict lists and original-font preview use matching dark windows.

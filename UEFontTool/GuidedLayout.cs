@@ -5,12 +5,15 @@ namespace UEFontTool;
 
 public sealed partial class GuidedForm
 {
-    readonly Button restoreFonts=Button(),moreActions=Button(),github=Button();
+    readonly Button restoreFonts=Button(),moreActions=Button();
+    readonly ToolStripMenuItem languageMenu=new(),githubMenu=new("GitHub"),settingsMenu=new();
     readonly SplitContainer infoSplit=new(){Size=new Size(1000,520),Orientation=Orientation.Horizontal,SplitterWidth=8,Panel1MinSize=80,Panel2MinSize=80,SplitterDistance=280,Dock=DockStyle.Fill,BackColor=Color.FromArgb(48,48,48)};
     readonly Label detailsHeading=new(){AutoSize=true,ForeColor=Color.Gray,Margin=new Padding(0,0,0,10)};
-    bool installAfterBuild=true;
+    bool installAfterBuild=true,preventActivation;
+    protected override bool ShowWithoutActivation=>preventActivation;
     public GuidedForm(bool loadSettings=true)
     {
+        preventActivation=!loadSettings;
         Text="UNREAL ENGINE Font Tool · v"+Application.ProductVersion.Split('+')[0];ClientSize=new Size(1180,940);MinimumSize=new Size(1000,760);StartPosition=FormStartPosition.CenterScreen;BackColor=Color.Black;ForeColor=Color.Silver;Font=new Font("Microsoft YaHei UI",10);AutoScaleDimensions=new SizeF(96,96);AutoScaleMode=AutoScaleMode.Dpi;
         Shown+=(_,_)=>{var area=Screen.FromControl(this).WorkingArea;MinimumSize=new Size(Math.Min(MinimumSize.Width,area.Width),Math.Min(MinimumSize.Height,area.Height));Size=new Size(Math.Min(Width,area.Width),Math.Min(Height,area.Height));Location=new Point(area.Left+(area.Width-Width)/2,area.Top+(area.Height-Height)/2);};
         using var icon=typeof(MainForm).Assembly.GetManifestResourceStream("UEFontTool.Resources.app.ico")!;Icon=new Icon(icon);
@@ -22,9 +25,9 @@ public sealed partial class GuidedForm
         root.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,100));
         bool sizingContent=false;void SizeContent(){if(sizingContent)return;sizingContent=true;try{int width=scroll.ClientSize.Width-(root.MinimumSize.Height>scroll.ClientSize.Height?SystemInformation.VerticalScrollBarWidth:0);root.Size=new Size(Math.Max(root.MinimumSize.Width,width),Math.Max(root.MinimumSize.Height,scroll.ClientSize.Height));}finally{sizingContent=false;}}scroll.SizeChanged+=(_,_)=>SizeContent();Shown+=(_,_)=>SizeContent();
         root.RowStyles.Add(new RowStyle(SizeType.AutoSize));root.RowStyles.Add(new RowStyle(SizeType.AutoSize));root.RowStyles.Add(new RowStyle(SizeType.Absolute,96));root.RowStyles.Add(new RowStyle(SizeType.AutoSize));root.RowStyles.Add(new RowStyle(SizeType.Percent,100));
-        var header=new TableLayoutPanel{Dock=DockStyle.Fill,AutoSize=true,ColumnCount=4,Margin=new Padding(0,0,0,12)};header.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,100));for(int i=0;i<3;i++)header.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
-        var brand=new FlowLayoutPanel{AutoSize=true,Dock=DockStyle.Fill,WrapContents=false};using var stream=typeof(MainForm).Assembly.GetManifestResourceStream("UEFontTool.Resources.icon.jpg")!;using var image=Image.FromStream(stream);var picture=new PictureBox{Image=new Bitmap(image),SizeMode=PictureBoxSizeMode.Zoom,Size=new Size(36,42)};picture.Disposed+=(_,_)=>picture.Image?.Dispose();brand.Controls.Add(picture);brand.Controls.Add(new Label{Text="UNREAL ENGINE Font Tool",AutoSize=true,Font=new Font("Segoe UI",18),ForeColor=Color.IndianRed,Margin=new Padding(8,2,0,0)});header.Controls.Add(brand);header.Controls.Add(toggleLanguage);header.Controls.Add(advancedToggle);root.Controls.Add(header,0,0);
-        header.Controls.Remove(advancedToggle);github.Text="GitHub";github.Click+=(_,_)=>Process.Start(new ProcessStartInfo("https://github.com/jakeouyang/UEFontTool"){UseShellExecute=true});header.Controls.Add(github,2,0);header.Controls.Add(advancedToggle,3,0);
+        var menu=new MenuStrip{Dock=DockStyle.Fill,AutoSize=true,BackColor=Color.Black,ForeColor=Color.Silver,Padding=new Padding(0,4,0,8),Font=Font,Renderer=new ToolStripProfessionalRenderer(new FontMenuColors())};
+        foreach(var item in new[]{languageMenu,githubMenu,settingsMenu}){item.ForeColor=Color.Silver;item.Padding=new Padding(14,6,14,6);menu.Items.Add(item);}MainMenuStrip=menu;root.Controls.Add(menu,0,0);
+        languageMenu.Click+=(_,_)=>{zh=!zh;Localize();};githubMenu.Click+=(_,_)=>Process.Start(new ProcessStartInfo("https://github.com/jakeouyang/UEFontTool"){UseShellExecute=true});settingsMenu.Click+=(_,_)=>ShowSettings();
         var inputs=new TableLayoutPanel{Dock=DockStyle.Fill,AutoSize=true,ColumnCount=3,RowCount=3,Margin=new Padding(0,0,0,8)};inputs.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));inputs.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,100));inputs.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
         for(int i=0;i<3;i++)inputs.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         foreach(var label in new[]{gameLabel,fontLabel,langLabel}){label.AutoSize=true;label.Dock=DockStyle.None;label.Anchor=AnchorStyles.Left;label.Margin=new Padding(0,6,10,8);}
@@ -39,7 +42,7 @@ public sealed partial class GuidedForm
         frame.SizeChanged+=(_,_)=>selection.MaximumSize=new Size(Math.Max(100,frame.ClientSize.Width-frame.Padding.Horizontal-8),0);
         Shown+=(_,_)=>{AlignFieldHeights();if(infoSplit.Height>infoSplit.Panel1MinSize+infoSplit.Panel2MinSize+infoSplit.SplitterWidth)infoSplit.SplitterDistance=Math.Clamp((int)(infoSplit.Height*.55),infoSplit.Panel1MinSize,infoSplit.Height-infoSplit.Panel2MinSize-infoSplit.SplitterWidth);};
         engine.Items.Add("Auto");engine.Items.AddRange(GuideHints.EngineVersions);engine.SelectedIndex=0;modName.Text="zz_UEFontTool_P";key.UseSystemPasswordChar=true;
-        gamePick.Click+=(_,_)=>{using var dialog=new FolderBrowserDialog();if(dialog.ShowDialog(this)==DialogResult.OK)game.Text=dialog.SelectedPath;};fontPick.Click+=(_,_)=>ChooseFont(p=>font.Text=p);toggleLanguage.Click+=(_,_)=>{zh=!zh;Localize();};advancedToggle.Click+=(_,_)=>ShowSettings();
+        gamePick.Click+=(_,_)=>{using var dialog=new FolderBrowserDialog();if(dialog.ShowDialog(this)==DialogResult.OK)game.Text=dialog.SelectedPath;};fontPick.Click+=(_,_)=>ChooseFont(p=>font.Text=p);
         analyze.Click+=(_,_)=>Analyze();build.Click+=(_,_)=>{installAfterBuild=true;Build();};restoreFonts.Click+=async(_,_)=>await RestoreInstalled();preview.Click+=(_,_)=>PreviewOriginal();moreActions.Click+=(_,_)=>MoreMenu();
         language.SelectedIndexChanged+=(_,_)=>{if(!filling){Recommend();RefreshSummary();Fill();}};view.SelectedIndexChanged+=(_,_)=>{if(!filling)Fill();};search.TextChanged+=(_,_)=>Fill();all.Click+=(_,_)=>SelectVisible(true);none.Click+=(_,_)=>SelectVisible(false);
         game.TextChanged+=(_,_)=>InvalidateAnalysis();key.TextChanged+=(_,_)=>InvalidateAnalysis();engine.SelectedIndexChanged+=(_,_)=>InvalidateAnalysis();font.TextChanged+=(_,_)=>{output=null;Fill();};
@@ -51,7 +54,7 @@ public sealed partial class GuidedForm
     void AlignFieldHeights()
     {
         int height=Math.Max(DeviceDpi*42/96,gamePick.Font.Height+16);
-        foreach(var button in new[]{gamePick,fontPick,analyze,build,restoreFonts,moreActions,toggleLanguage,advancedToggle,github,all,none,preview}){button.MinimumSize=new Size(button.MinimumSize.Width,height);button.Height=height;}
+        foreach(var button in new[]{gamePick,fontPick,analyze,build,restoreFonts,moreActions,all,none,preview}){button.MinimumSize=new Size(button.MinimumSize.Width,height);button.Height=height;}
         foreach(var input in new[]{game,font,search}){input.MinimumSize=new Size(input.MinimumSize.Width,height);input.Height=height;}
     }
     protected override void OnDpiChanged(DpiChangedEventArgs e){base.OnDpiChanged(e);if(Visible)AlignFieldHeights();}
