@@ -1,5 +1,10 @@
 # Changelog / 更新记录
 
+## v0.8.4
+
+- Place language switching, GitHub and Settings directly in the title bar, immediately before the minimize/maximize/close controls, without a separate menu row.
+- 语言切换、GitHub、设置移到窗口操作控件左侧，与最小化、最大化和关闭并排显示。
+
 ## v0.8.3
 
 - Remove the duplicate in-content icon/title. Show the application icon beside the window title and expose language, GitHub and Settings in a traditional top menu bar.

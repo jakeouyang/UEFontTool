@@ -26,7 +26,7 @@ Download `UEFontTool-vVERSION-win-x64.zip` from **Releases**, extract the comple
 
 **Advanced controls?** **Settings** contains masked AES input, engine-version overrides, mod names and the explicit allow-custom-character-loss option. Version detection is automatic where possible. **More** offers Build only, output folder, detection details and Expert tools. The older dedicated expert builder still builds only; use the default interface for automated installation/restoration.
 
-A traditional top menu contains language switching, GitHub and Settings. The icon sits beside the window title, without a duplicate content heading. The black title bar retains minimize, maximize/restore, close, dragging and edge resizing. Inputs and buttons share a height. Drag the list/details divider to resize the information area; long details wrap and scroll. On smaller windows, content scrolls while build/install/restore actions remain visible.
+Language switching, GitHub and Settings sit in the title bar immediately before the minimize/maximize/close controls. The icon sits beside the window title, without a duplicate content heading. The black title bar retains minimize, maximize/restore, close, dragging and edge resizing. Inputs and buttons share a height. Drag the list/details divider to resize the information area; long details wrap and scroll. On smaller windows, content scrolls while build/install/restore actions remain visible.
 
 ## Fonts and containers
 
@@ -96,7 +96,7 @@ dotnet build UEFontTool/UEFontTool.csproj -c Release
 dotnet UEFontTool/bin/Release/net8.0-windows/UEFontTool.dll --self-test test-results.txt
 ```
 
-Automated tests use synthetic archives, system fonts and test-only keys; no game is needed. Main pushes, PRs and manual Actions runs build/test and upload artifacts. A `v*` tag matching the project version, such as `v0.8.3`, publishes to GitHub Releases. The workflow uses `GITHUB_TOKEN`; personal tokens and SSH private keys do not belong in source control.
+Automated tests use synthetic archives, system fonts and test-only keys; no game is needed. Main pushes, PRs and manual Actions runs build/test and upload artifacts. A `v*` tag matching the project version, such as `v0.8.4`, publishes to GitHub Releases. The workflow uses `GITHUB_TOKEN`; personal tokens and SSH private keys do not belong in source control.
 
 ## Command line
 

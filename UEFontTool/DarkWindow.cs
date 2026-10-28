@@ -26,6 +26,10 @@ public class DarkWindow : Form
     protected override void OnControlAdded(ControlEventArgs e){base.OnControlAdded(e);caption?.SendToBack();}
     protected override void OnShown(EventArgs e){base.OnShown(e);foreach(var button in new[]{minimize,maximize,close}){button.FlatAppearance.BorderSize=0;button.FlatAppearance.MouseOverBackColor=button==close?Color.FromArgb(150,25,35):Color.FromArgb(40,40,40);}minimize.Visible=MinimizeBox;maximize.Visible=MaximizeBox;}
     public void SetCaptionLanguage(bool chinese){minimize.AccessibleName=chinese?"最小化":"Minimize";maximize.AccessibleName=chinese?"最大化或还原":"Maximize or restore";close.AccessibleName=chinese?"关闭":"Close";}
+    protected void SetCaptionMenu(MenuStrip menu)
+    {
+        menu.Dock=DockStyle.Right;menu.LayoutStyle=ToolStripLayoutStyle.HorizontalStackWithOverflow;menu.AutoSize=true;menu.Margin=Padding.Empty;caption.Controls.Add(menu);caption.Controls.SetChildIndex(menu,caption.Controls.IndexOf(minimize));
+    }
     void DragWindow(object? sender,MouseEventArgs e){if(e.Button!=MouseButtons.Left)return;ReleaseCapture();SendMessage(Handle,0xA1,(IntPtr)2,IntPtr.Zero);}
     void ToggleMaximize(){MaximizedBounds=Screen.FromControl(this).WorkingArea;WindowState=WindowState==FormWindowState.Maximized?FormWindowState.Normal:FormWindowState.Maximized;}
     protected override void OnPaint(PaintEventArgs e){base.OnPaint(e);using var pen=new Pen(Color.FromArgb(65,65,65));e.Graphics.DrawRectangle(pen,0,0,Width-1,Height-1);}
