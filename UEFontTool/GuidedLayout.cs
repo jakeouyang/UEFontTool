@@ -16,7 +16,6 @@ public sealed partial class GuidedForm
         preventActivation=!loadSettings;
         Text="UNREAL ENGINE Font Tool · v"+Application.ProductVersion.Split('+')[0];ClientSize=new Size(1180,940);MinimumSize=new Size(1000,760);StartPosition=FormStartPosition.CenterScreen;BackColor=Color.Black;ForeColor=Color.Silver;Font=new Font("Microsoft YaHei UI",10);AutoScaleDimensions=new SizeF(96,96);AutoScaleMode=AutoScaleMode.Dpi;
         Shown+=(_,_)=>{var area=Screen.FromControl(this).WorkingArea;MinimumSize=new Size(Math.Min(MinimumSize.Width,area.Width),Math.Min(MinimumSize.Height,area.Height));Size=new Size(Math.Min(Width,area.Width),Math.Min(Height,area.Height));Location=new Point(area.Left+(area.Width-Width)/2,area.Top+(area.Height-Height)/2);};
-        using var icon=typeof(MainForm).Assembly.GetManifestResourceStream("UEFontTool.Resources.app.ico")!;Icon=new Icon(icon);
         var frame=new TableLayoutPanel{Dock=DockStyle.Fill,Padding=new Padding(22,12,22,18),ColumnCount=1,RowCount=3,Margin=Padding.Empty};Controls.Add(frame);
         frame.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,100));
         frame.RowStyles.Add(new RowStyle(SizeType.Percent,100));frame.RowStyles.Add(new RowStyle(SizeType.AutoSize));frame.RowStyles.Add(new RowStyle(SizeType.AutoSize));
@@ -25,7 +24,7 @@ public sealed partial class GuidedForm
         root.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,100));
         bool sizingContent=false;void SizeContent(){if(sizingContent)return;sizingContent=true;try{int width=scroll.ClientSize.Width-(root.MinimumSize.Height>scroll.ClientSize.Height?SystemInformation.VerticalScrollBarWidth:0);root.Size=new Size(Math.Max(root.MinimumSize.Width,width),Math.Max(root.MinimumSize.Height,scroll.ClientSize.Height));}finally{sizingContent=false;}}scroll.SizeChanged+=(_,_)=>SizeContent();Shown+=(_,_)=>SizeContent();
         root.RowStyles.Add(new RowStyle(SizeType.AutoSize));root.RowStyles.Add(new RowStyle(SizeType.AutoSize));root.RowStyles.Add(new RowStyle(SizeType.Absolute,96));root.RowStyles.Add(new RowStyle(SizeType.AutoSize));root.RowStyles.Add(new RowStyle(SizeType.Percent,100));
-        var menu=new MenuStrip{AutoSize=true,BackColor=Color.Black,ForeColor=Color.Silver,Padding=new Padding(4,0,4,0),Font=Font,Renderer=new ToolStripProfessionalRenderer(new FontMenuColors())};
+        var menu=new MenuStrip{AutoSize=true,BackColor=Color.Black,ForeColor=Color.Silver,Padding=new Padding(4,0,4,0),Font=Font,Renderer=new TextMenuRenderer()};
         foreach(var item in new[]{languageMenu,githubMenu,settingsMenu}){item.ForeColor=Color.Silver;item.Padding=new Padding(14,6,14,6);menu.Items.Add(item);}MainMenuStrip=menu;SetCaptionMenu(menu);
         languageMenu.Click+=(_,_)=>{zh=!zh;Localize();};githubMenu.Click+=(_,_)=>Process.Start(new ProcessStartInfo("https://github.com/jakeouyang/UEFontTool"){UseShellExecute=true});settingsMenu.Click+=(_,_)=>ShowSettings();
         var inputs=new TableLayoutPanel{Dock=DockStyle.Fill,AutoSize=true,ColumnCount=3,RowCount=3,Margin=new Padding(0,0,0,8)};inputs.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));inputs.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,100));inputs.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
@@ -73,7 +72,7 @@ public sealed partial class GuidedForm
     ContextMenuStrip GetMoreMenu()
     {
         if(ownedMoreMenu!=null)return ownedMoreMenu;
-        var menu=new ContextMenuStrip{BackColor=Color.Black,ForeColor=Color.Silver,Font=Font,ShowImageMargin=false,ShowCheckMargin=false,Renderer=new ToolStripProfessionalRenderer(new FontMenuColors())};ownedMoreMenu=menu;
+        var menu=new ContextMenuStrip{BackColor=Color.Black,ForeColor=Color.Silver,Font=Font,ShowImageMargin=false,ShowCheckMargin=false,Renderer=new TextMenuRenderer()};ownedMoreMenu=menu;
         void Add(Action action){menu.Items.Add("",null,(_,_)=>{if(!IsDisposed&&!Disposing)BeginInvoke(new Action(()=>{if(IsDisposed||Disposing)return;try{action();}catch(Exception ex){ReportFailure(ex,game.Text.Trim(),"more");}}));});}
         Add(()=>{installAfterBuild=false;Build();});Add(()=>{if(output!=null)Process.Start(new ProcessStartInfo(output){UseShellExecute=true});});Add(ShowDiagnostics);Add(()=>ChooseFont(p=>{foreach(var t in targets.Where(t=>t.Selected))t.FontOverride=p;Fill();}));Add(()=>{foreach(var t in targets.Where(t=>t.Selected))t.FontOverride=null;Fill();});Add(()=>{using var form=new MainForm();form.ShowDialog(this);});
         return menu;

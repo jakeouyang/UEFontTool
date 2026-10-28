@@ -48,14 +48,11 @@ public sealed class MainForm : Form
         foreach (int w in new[] { 120, 100, 42, 42 }) header.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, w));
         var title = Label(); title.Name = "appTitle"; title.Text = "UNREAL ENGINE Font Tool"; title.Font = new Font("Segoe UI", 19);
         title.MouseDown += (_, e) => { if (e.Button == MouseButtons.Left) { ReleaseCapture(); SendMessage(Handle, 0xA1, (IntPtr)2, IntPtr.Zero); } };
-        using var iconStream = typeof(MainForm).Assembly.GetManifestResourceStream("UEFontTool.Resources.app.ico")!;
-        Icon = new Icon(iconStream);
+        Icon = AppBranding.CreateIcon();
         var titleArea = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 1, Margin = Padding.Empty };
         titleArea.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
         titleArea.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 52)); titleArea.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        using var imageStream = typeof(MainForm).Assembly.GetManifestResourceStream("UEFontTool.Resources.icon.jpg")!;
-        using var sourceImage = Image.FromStream(imageStream);
-        var titleImage = new PictureBox { Image = new Bitmap(sourceImage), SizeMode = PictureBoxSizeMode.Zoom, Size = new Size(40, 44), Anchor = AnchorStyles.Left, Margin = Padding.Empty };
+        var titleImage = new PictureBox { Image = AppBranding.CreateLogo(), SizeMode = PictureBoxSizeMode.Zoom, Size = new Size(40, 44), Anchor = AnchorStyles.Left, Margin = Padding.Empty };
         titleImage.Disposed += (_, _) => titleImage.Image?.Dispose();
         titleImage.MouseDown += (_, e) => { if (e.Button == MouseButtons.Left) { ReleaseCapture(); SendMessage(Handle, 0xA1, (IntPtr)2, IntPtr.Zero); } };
         titleArea.Controls.Add(titleImage, 0, 0); titleArea.Controls.Add(title, 1, 0); header.Controls.Add(titleArea, 0, 0);
@@ -92,7 +89,7 @@ public sealed class MainForm : Form
             catch (Exception ex) { Append(ex.Message); }
         });
         remember.Dock = DockStyle.Fill; remember.Margin = Padding.Empty;
-        var mappingMenu = new ContextMenuStrip();
+        var mappingMenu = new ContextMenuStrip{BackColor=Color.Black,ForeColor=Color.Silver,ShowImageMargin=false,Renderer=new TextMenuRenderer()};
         mappingMenu.Items.Add("恢复自动识别 / Reset language mapping", null, (_, _) => {
             try { if (report != null) { LanguageMap.Forget(report, Languages); ApplyRecommendations(); Append(T("Automatic language matching restored.", "已恢复自动识别。")); } }
             catch (Exception ex) { Append(ex.Message); }
@@ -157,7 +154,7 @@ public sealed class MainForm : Form
     static Label Label() => new() { Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft, Margin = Padding.Empty, AutoEllipsis = true };
     void EditAesKey()
     {
-        using var dialog = new Form { Text = T("AES key (this session only)", "AES 密钥（仅本次会话）"), ClientSize = new Size(640, 190), StartPosition = FormStartPosition.CenterParent, FormBorderStyle = FormBorderStyle.FixedDialog, MaximizeBox = false, MinimizeBox = false, BackColor = Color.Black, ForeColor = Color.Silver, Font = Font };
+        using var dialog = new Form { Text = T("AES key (this session only)", "AES 密钥（仅本次会话）"), Icon=AppBranding.CreateIcon(), ClientSize = new Size(640, 190), StartPosition = FormStartPosition.CenterParent, FormBorderStyle = FormBorderStyle.FixedDialog, MaximizeBox = false, MinimizeBox = false, BackColor = Color.Black, ForeColor = Color.Silver, Font = Font };
         var note = new Label { Text = T("Paste 64 hex digits (optional 0x prefix), or a 32-byte Base64 key.\nThe key is not saved to settings or logs. Leave empty to clear.", "粘贴 64 位十六进制（可带 0x）或 32 字节 Base64 密钥。\n密钥不保存到配置或日志；留空可清除。"), Bounds = new Rectangle(16, 12, 608, 54) };
         var input = new TextBox { Text = aesKey ?? "", UseSystemPasswordChar = true, Bounds = new Rectangle(16, 76, 608, 30), BackColor = PanelColor, ForeColor = Color.White };
         var show = new CheckBox { Text = T("Show key", "显示密钥"), Bounds = new Rectangle(16, 126, 180, 36) };
@@ -178,8 +175,8 @@ public sealed class MainForm : Form
     static TextBox Input() => new() { Dock = DockStyle.Fill, BackColor = PanelColor, ForeColor = Color.White, BorderStyle = BorderStyle.FixedSingle, Margin = new Padding(0, 7, 10, 0) };
     Button Button(string text, Action action)
     {
-        var b = new Button { Text = text, ForeColor = Red, BackColor = Color.Black, FlatStyle = FlatStyle.Flat, Width = 98, Height = 40, Margin = new Padding(0, 2, 8, 2), Cursor = Cursors.Hand, UseVisualStyleBackColor = false };
-        b.FlatAppearance.BorderSize = 0; b.FlatAppearance.MouseOverBackColor = Color.FromArgb(32, 12, 12); b.Click += (_, _) => action(); return b;
+        var b = new TextButton { Text = text, ForeColor = Red, BackColor = Color.Black, Width = 98, Height = 40, Margin = new Padding(0, 2, 8, 2) };
+        b.Click += (_, _) => action(); return b;
     }
     static Control PathRow(Label label, TextBox text, Button browse)
     {

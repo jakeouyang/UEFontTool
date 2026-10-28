@@ -1,5 +1,11 @@
 # Changelog / 更新记录
 
+## v0.8.7
+
+- Replace the executable, window-title and expert-mode icons with the supplied UEF artwork; include ICO sizes from 16 to 256 pixels.
+- Remove action-button and caption-button borders. Hover and keyboard focus change text color while keeping the button background unchanged; title menus use matching text feedback.
+- 更新应用、标题栏及专家模式图标；所有操作按钮移除边框，鼠标悬停及键盘焦点通过文字变色提示。同步更新中英文界面截图。
+
 ## v0.8.6
 
 - Move Allow missing custom characters beside Game language; remove its duplicate Settings control. Keep protection enabled until the user explicitly checks the option.

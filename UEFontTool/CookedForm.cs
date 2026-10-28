@@ -12,7 +12,7 @@ public sealed class CookedForm : Form
     string? analysis,mapping; bool busy;
     public CookedForm(string game,string? key)
     {
-        this.game=game;this.key=key; Text="内联 FontFace / IoStore";Width=1250;Height=850;MinimumSize=new Size(950,650);StartPosition=FormStartPosition.CenterParent;
+        this.game=game;this.key=key; Text="内联 FontFace / IoStore";Icon=AppBranding.CreateIcon();Width=1250;Height=850;MinimumSize=new Size(950,650);StartPosition=FormStartPosition.CenterParent;
         BackColor=Color.Black;ForeColor=Color.Silver;
         details.BackColor=Color.FromArgb(18,18,18);details.ForeColor=Color.Silver;
         grid.DefaultCellStyle.BackColor=Color.FromArgb(18,18,18);grid.DefaultCellStyle.ForeColor=Color.Silver;grid.DefaultCellStyle.SelectionBackColor=Color.FromArgb(75,20,24);grid.DefaultCellStyle.SelectionForeColor=Color.White;
@@ -22,7 +22,7 @@ public sealed class CookedForm : Form
         version.Items.AddRange(new object[]{"UE4_26","UE4_27","UE5_0","UE5_1","UE5_2","UE5_3","UE5_4","UE5_5","UE5_6","UE5_7"});
         version.SelectedItem=game.Contains("RESONANCE",StringComparison.OrdinalIgnoreCase)?"UE5_6":game.Contains("Hogwarts",StringComparison.OrdinalIgnoreCase)?"UE4_27":"UE5_4";
         bar.Controls.Add(new Label{Text="引擎版本 / Engine",AutoSize=true});bar.Controls.Add(version);bar.Controls.Add(name);
-        void Button(string text,Action click){var b=new Button{Text=text,AutoSize=true,BackColor=Color.Black,ForeColor=Color.IndianRed,FlatStyle=FlatStyle.Flat};b.Click+=(_,_)=>click();bar.Controls.Add(b);}
+        void Button(string text,Action click){var b=new TextButton{Text=text,AutoSize=true,BackColor=Color.Black,ForeColor=Color.IndianRed};b.Click+=(_,_)=>click();bar.Controls.Add(b);}
         Button("扫描 / Scan",()=>Run(false));Button("全选 / All",()=>Check(true));Button("清空 / None",()=>Check(false));
         Button("选择新字体 / Choose font",()=>{using var d=new OpenFileDialog{Filter="TTF / OTF|*.ttf;*.otf"};if(d.ShowDialog(this)==DialogResult.OK)foreach(DataGridViewRow r in grid.Rows)if(r.Cells[0].Value is true)r.Cells[3].Value=d.FileName;});
         Button("生成 / Build",()=>Run(true));bar.Controls.Add(allow);bar.Controls.Add(state);

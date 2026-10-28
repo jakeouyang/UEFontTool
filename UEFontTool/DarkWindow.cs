@@ -11,7 +11,7 @@ public class DarkWindow : Form
     readonly Button minimize=CaptionButton("—"),maximize=CaptionButton("□"),close=CaptionButton("✕");
     public DarkWindow()
     {
-        FormBorderStyle=FormBorderStyle.None;BackColor=Color.Black;ForeColor=Color.Silver;Padding=new Padding(1);DoubleBuffered=true;
+        FormBorderStyle=FormBorderStyle.None;BackColor=Color.Black;ForeColor=Color.Silver;Padding=new Padding(1);DoubleBuffered=true;Icon=AppBranding.CreateIcon();((TextButton)close).HoverTextColor=Color.FromArgb(255,80,90);
         caption.Controls.Add(captionText);
         var picture=new PictureBox{Dock=DockStyle.Left,Width=40,BackColor=Color.Black};picture.Paint+=(_,e)=>{if(Icon!=null){int size=DeviceDpi*24/96;e.Graphics.DrawIcon(Icon,new Rectangle((picture.Width-size)/2,(picture.Height-size)/2,size,size));}};caption.Controls.Add(picture);picture.MouseDown+=DragWindow;captionText.Padding=new Padding(4,0,0,0);
         foreach(var button in new[]{minimize,maximize,close}){button.Dock=DockStyle.Right;caption.Controls.Add(button);}
@@ -22,9 +22,9 @@ public class DarkWindow : Form
         SizeChanged+=(_,_)=>maximize.Text=WindowState==FormWindowState.Maximized?"❐":"□";
         SetCaptionLanguage(true);
     }
-    static Button CaptionButton(string text)=>new(){Text=text,Width=48,FlatStyle=FlatStyle.Flat,BackColor=Color.Black,ForeColor=Color.Silver,TabStop=false,Font=new Font("Segoe UI",12),Cursor=Cursors.Hand};
+    static Button CaptionButton(string text)=>new TextButton{Text=text,Width=48,BackColor=Color.Black,ForeColor=Color.Silver,TabStop=false,Font=new Font("Segoe UI",12)};
     protected override void OnControlAdded(ControlEventArgs e){base.OnControlAdded(e);caption?.SendToBack();}
-    protected override void OnShown(EventArgs e){base.OnShown(e);foreach(var button in new[]{minimize,maximize,close}){button.FlatAppearance.BorderSize=0;button.FlatAppearance.MouseOverBackColor=button==close?Color.FromArgb(150,25,35):Color.FromArgb(40,40,40);}minimize.Visible=MinimizeBox;maximize.Visible=MaximizeBox;}
+    protected override void OnShown(EventArgs e){base.OnShown(e);minimize.Visible=MinimizeBox;maximize.Visible=MaximizeBox;}
     public void SetCaptionLanguage(bool chinese){minimize.AccessibleName=chinese?"最小化":"Minimize";maximize.AccessibleName=chinese?"最大化或还原":"Maximize or restore";close.AccessibleName=chinese?"关闭":"Close";}
     protected void SetCaptionMenu(MenuStrip menu)
     {

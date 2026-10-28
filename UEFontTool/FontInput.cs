@@ -27,7 +27,7 @@ public sealed class FontInput : UserControl
     protected override void OnPaint(PaintEventArgs e){base.OnPaint(e);using var pen=new Pen(ContainsFocus?Color.IndianRed:Color.FromArgb(75,75,75));e.Graphics.DrawRectangle(pen,0,0,Width-1,Height-1);}
 }
 
-public sealed class FontActionButton : Button
+public sealed class FontActionButton : TextButton
 {
     public FontActionButton(){AutoSize=true;AutoSizeMode=AutoSizeMode.GrowAndShrink;MinimumSize=new Size(96,42);Padding=new Padding(14,6,14,6);BackColor=Color.Black;ForeColor=Color.FromArgb(235,65,70);FlatStyle=FlatStyle.Flat;Margin=new Padding(0,4,8,4);Cursor=Cursors.Hand;}
     void UpdateHeight(){int height=Math.Max(DeviceDpi*42/96,Font.Height+16);MinimumSize=new Size(MinimumSize.Width,height);Height=height;}
