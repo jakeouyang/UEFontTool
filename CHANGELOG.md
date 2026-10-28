@@ -1,5 +1,13 @@
 # Changelog / 更新记录
 
+## v0.8.2
+
+- Replace the default window chrome with a black title bar, retaining minimize, maximize/restore, close, caption dragging and edge resizing. Settings, diagnostics, conflict lists and original-font preview use matching dark windows.
+- Enlarge the main window and status area. Font list/details now share a draggable divider; long details wrap and scroll. Keep installation/restoration actions outside the scrollable content area.
+- Match input/button heights across DPI changes, center input text vertically, enlarge language columns and show the selected font's details immediately.
+- Verify custom window controls, input change events and password masking alongside the existing font/container/installation regressions.
+- 默认窗口改为全黑标题栏，保留窗口操作；增大窗口和信息区，列表/详情可拖动调整，空间不足时滚动且底部操作保持可见；统一输入框与按钮高度，修正长文本显示。
+
 ## v0.8.1
 
 - Increase the guided window's minimum height so the font list remains usable at 96 DPI; the hosted Windows build caught the smaller layout that passed on the local higher-DPI screen.

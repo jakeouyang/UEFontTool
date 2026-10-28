@@ -27,7 +27,7 @@ internal static class Program
                 case ["--render-guide", var output, .. var options]:
                     using(var form=new GuidedForm(false))
                     {
-                        form.SelectLanguage(!options.Contains("--en"));form.Show();Application.DoEvents();
+                        form.SelectLanguage(!options.Contains("--en"));if(options.Contains("--small"))form.Size=form.MinimumSize;form.Show();Application.DoEvents();
                         int sample=Array.IndexOf(options,"--sample");if(sample>=0&&sample+2<options.Length)form.Preview(options[sample+1],options[sample+2]);
                         Application.DoEvents();using var bitmap=new Bitmap(form.Width,form.Height);form.DrawToBitmap(bitmap,new Rectangle(0,0,form.Width,form.Height));bitmap.Save(output);
                     }break;

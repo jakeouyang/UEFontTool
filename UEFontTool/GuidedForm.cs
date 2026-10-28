@@ -1,11 +1,11 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using System.Diagnostics;
 
 namespace UEFontTool;
 
-public sealed partial class GuidedForm : Form
+public sealed partial class GuidedForm : DarkWindow
 {
-    readonly TextBox game=Input(),font=Input(),search=Input(),key=Input(),modName=Input();
+    readonly FontInput game=Input(),font=Input(),search=Input(),key=Input(),modName=Input();
     readonly ComboBox language=Combo(),view=Combo(),engine=Combo();
     readonly Label intro=Label(),gameLabel=Label(),fontLabel=Label(),langLabel=Label(),selection=Label(),engineNote=Label();
     readonly TextBox summary=new(){Dock=DockStyle.Fill,Multiline=true,ReadOnly=true,WordWrap=true,ScrollBars=ScrollBars.Vertical,BackColor=Color.FromArgb(22,22,22),ForeColor=Color.Silver,BorderStyle=BorderStyle.None,Margin=new Padding(0,6,0,6)};
@@ -21,18 +21,17 @@ public sealed partial class GuidedForm : Form
     bool zh=true,busy,filling,hasAnalyzed,partial;string? problem;
     string T(string cn,string en)=>zh?cn:en;
     Languages ChosenLanguage=>language.SelectedIndex switch{1=>Languages.Traditional,2=>Languages.English,_=>Languages.Simplified};
-    static TextBox Input()=>new(){BackColor=Color.FromArgb(18,18,18),ForeColor=Color.White,BorderStyle=BorderStyle.FixedSingle,Margin=new Padding(0,6,8,0)};
-    static ComboBox Combo()=>new(){DropDownStyle=ComboBoxStyle.DropDownList,BackColor=Color.FromArgb(24,24,24),ForeColor=Color.Silver,Margin=new Padding(0,5,10,0)};
+    static FontInput Input()=>new();
+    static FontCombo Combo()=>new();
     static Label Label()=>new(){Dock=DockStyle.Fill,TextAlign=ContentAlignment.MiddleLeft,Margin=Padding.Empty};
-    static Button Button()=>new(){AutoSize=true,AutoSizeMode=AutoSizeMode.GrowAndShrink,MinimumSize=new Size(90,34),Padding=new Padding(10,4,10,4),BackColor=Color.Black,ForeColor=Color.FromArgb(235,65,70),FlatStyle=FlatStyle.Flat,Margin=new Padding(6,3,6,7),Cursor=Cursors.Hand};
-    static Control PathRow(Label label,TextBox input,Button browse){var row=new TableLayoutPanel{Dock=DockStyle.Fill,ColumnCount=3,RowCount=1,Margin=Padding.Empty};row.RowStyles.Add(new RowStyle(SizeType.Percent,100));row.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute,155));row.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,100));row.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute,100));row.Controls.Add(label);input.Dock=DockStyle.Fill;row.Controls.Add(input);row.Controls.Add(browse);return row;}
+    static Button Button()=>new FontActionButton();
     void ChooseFont(Action<string> apply){using var d=new OpenFileDialog{Filter="TTF / OTF|*.ttf;*.otf"};if(d.ShowDialog(this)==DialogResult.OK)apply(d.FileName);}
     void Localize()
     {
         filling=true;int l=language.SelectedIndex<0?0:language.SelectedIndex,v=view.SelectedIndex<0?0:view.SelectedIndex;language.Items.Clear();language.Items.AddRange(zh?new object[]{"简体中文","繁體中文","英文"}:new object[]{"Simplified Chinese","Traditional Chinese","English"});language.SelectedIndex=l;view.Items.Clear();view.Items.AddRange(zh?new object[]{"推荐替换项","全部游戏字体","语言待确认","引擎 / 回退字体"}:new object[]{"Recommended targets","All game fonts","Language unconfirmed","Engine / fallback fonts"});view.SelectedIndex=v;view.Width=Math.Max(230,view.Items.Cast<string>().Max(text=>TextRenderer.MeasureText(text,view.Font).Width)+40);view.DropDownWidth=view.Width;filling=false;
-        search.PlaceholderText=T("搜索字体","Search fonts");toggleLanguage.Text=T("English","中文");gameLabel.Text=T("游戏目录","Game folder");fontLabel.Text=T("新字体","New font");langLabel.Text=T("游戏语言","Game language");gamePick.Text=fontPick.Text=T("浏览…","Browse…");analyze.Text=T("检测字体","Detect fonts");advancedToggle.Text=T("设置…","Settings…");restoreFonts.Text=T("还原字体","Restore fonts");moreActions.Text=T("更多操作 ▾","More ▾");
+        SetCaptionLanguage(zh);detailsHeading.Text=T("字体详情 · 拖动上方分隔条可调整高度","Font details · drag the divider to resize");search.PlaceholderText=T("搜索字体","Search fonts");toggleLanguage.Text=T("English","中文");gameLabel.Text=T("游戏目录","Game folder");fontLabel.Text=T("新字体","New font");langLabel.Text=T("游戏语言","Game language");game.FieldName=gameLabel.Text;font.FieldName=fontLabel.Text;search.FieldName=T("搜索字体","Search fonts");gamePick.Text=fontPick.Text=T("浏览…","Browse…");analyze.Text=T("检测字体","Detect fonts");advancedToggle.Text=T("设置…","Settings…");restoreFonts.Text=T("还原字体","Restore fonts");moreActions.Text=T("更多操作 ▾","More ▾");
         all.Text=T("全选","Select all");none.Text=T("清空","Clear");build.Text=T("生成并安装","Build and install");
-        allowSymbols.Text=T("允许缺少特殊字形（可能影响图标）","Allow missing custom symbols (may affect icons)");preview.Text=T("预览原字体","Preview original");string[] headers=zh?new[]{"✓","原字体名称","语言识别","处理方式","将使用的新字体"}:new[]{"Use","Original font","Language hint","Handling","Replacement font"};for(int i=0;i<headers.Length;i++)grid.Columns[i].HeaderText=headers[i];RefreshSummary();Fill();
+        allowSymbols.Text=T("允许缺少特殊字形（可能影响图标）","Allow missing custom symbols (may affect icons)");preview.Text=T("预览原字体","Preview original");string[] headers=zh?new[]{"✓","原字体名称","语言识别","处理方式","将使用的新字体"}:new[]{"Use","Original font","Language hint","Handling","Replacement font"};for(int i=0;i<headers.Length;i++)grid.Columns[i].HeaderText=headers[i];grid.Columns[2].Width=zh?185:Math.Max(220,TextRenderer.MeasureText("Traditional Chinese",grid.Font).Width+32);if(Visible)AlignFieldHeights();RefreshSummary();Fill();
     }
     void InvalidateAnalysis(){if(busy)return;scan=null;targets.Clear();cookedFolder=null;detectedVersion=null;hasAnalyzed=false;partial=false;problem=null;diagnosticText="";engineNote.Text="";allowSymbols.Checked=false;output=null;Fill();RefreshSummary();}
     void MarkAlternatives(){var embedded=targets.Where(t=>t.Inline).Select(t=>Path.ChangeExtension(t.Path,null)).ToHashSet(StringComparer.OrdinalIgnoreCase);foreach(var t in targets)t.AlternativeData=!t.Inline&&embedded.Contains(Path.ChangeExtension(t.Path,null));}
@@ -42,7 +41,7 @@ public sealed partial class GuidedForm : Form
         if(grid.Columns.Count==0)return;filling=true;grid.Rows.Clear();
         var visible=targets.Where(t=>view.SelectedIndex switch{0=>t.Recommended,1=>!t.Engine,2=>!t.Engine&&t.Language.Languages==Languages.None,_=>t.Engine}).Where(t=>t.Path.Contains(search.Text.Trim(),StringComparison.OrdinalIgnoreCase));
         foreach(var t in visible.OrderByDescending(t=>t.Selected).ThenBy(t=>t.Path)){int i=grid.Rows.Add(t.Selected,Path.GetFileNameWithoutExtension(t.Path)+(t.AlternativeData?T("（备用数据）"," (alternative data)"):""),zh?t.Language.Zh:t.Language.En,t.Inline?T("自动处理封装","Embedded (auto)"):T("普通字体","Standalone"),t.FontOverride!=null?Path.GetFileName(t.FontOverride):string.IsNullOrWhiteSpace(font.Text)?T("请先选择新字体","Choose a font above"):T("上方新字体：","Default: ")+Path.GetFileName(font.Text));grid.Rows[i].Tag=t;grid.Rows[i].Cells[1].ToolTipText=t.Path;}
-        filling=false;UpdateSelection();
+        filling=false;UpdateSelection();if(grid.Rows.Count>0){grid.CurrentCell=grid.Rows[0].Cells[1];ShowDetails();}else details.Text="";
     }
     void SelectVisible(bool value){foreach(DataGridViewRow r in grid.Rows){((GuideTarget)r.Tag!).Selected=value;r.Cells[0].Value=value;}UpdateSelection();}
     void UpdateSelection(){int count=targets.Count(t=>t.Selected),visible=grid.Rows.Cast<DataGridViewRow>().Count(r=>((GuideTarget)r.Tag!).Selected);selection.Text=T($"已勾选 {count} 项，其中 {count-visible} 项被当前筛选隐藏。未单独设置的项目都使用上方的新字体。",$"{count} selected; {count-visible} hidden by the filter. Items without an override use the font chosen above.");build.Enabled=!busy;open.Enabled=!busy;}
@@ -103,7 +102,7 @@ public sealed partial class GuidedForm : Form
     {
         game.Text="GAME_DIR";font.Text="MY_FONT.ttf";
         scan=JsonSerializer.Deserialize<ScanReport>(File.ReadAllText(scanFile))!;targets.Clear();foreach(var p in scan.Fonts.Keys)targets.Add(new(){Path=p,Language=GuideHints.Language(p,scan.Profile)});
-        foreach(var r in JsonSerializer.Deserialize<CookedReport[]>(File.ReadAllText(Path.Combine(analysisFolder,"font-analysis.json")))!.Where(r=>r.Faces.Count>0)){string p=Path.GetRelativePath(analysisFolder,r.Path).Replace('\\','/');targets.Add(new(){Path=p,Inline=true,Cooked=r,Language=GuideHints.Language(p,scan.Profile)});}
+        foreach(var r in JsonSerializer.Deserialize<CookedReport[]>(File.ReadAllText(Path.Combine(analysisFolder,"font-analysis.json")))!.Where(r=>r.Faces.Count>0||r.ExternalFaces.Count>0)){string p=Path.GetRelativePath(analysisFolder,r.Path).Replace('\\','/');targets.Add(new(){Path=p,Inline=true,Cooked=r,Language=GuideHints.Language(p,scan.Profile)});}
         hasAnalyzed=true;MarkAlternatives();foreach(var t in targets){t.Recommended=!t.Engine&&!t.AlternativeData&&(t.Language.Languages&ChosenLanguage)!=0;t.Selected=t.Recommended;}RefreshSummary();Fill();
     }
     public void SelectLanguage(bool chinese){zh=chinese;Localize();}

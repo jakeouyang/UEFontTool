@@ -113,6 +113,20 @@ public static class SelfTest
             LanguageMap.Forget(scan, Languages.Simplified);
             Assert(LanguageMap.Select(scan, Languages.Simplified, false).Contains("b1/Content/Fonts/Font_SC_Regular.ufont"), "Reset restores automatic language detection");
             using(var guided=new GuidedForm(false)){guided.Show();Application.DoEvents();guided.CheckExperience(scan);Assert(true,"Guided UI: recommendations, unknown languages, hidden selections and explicit replacement fonts");}
+            using(var input=new FontInput())
+            {
+                int edits=0;input.TextChanged+=(_,_)=>edits++;input.Text="test-font.ttf";input.UseSystemPasswordChar=true;
+                Assert(input.Text=="test-font.ttf"&&edits==1&&input.UseSystemPasswordChar,"Aligned input forwards edits and retains password masking");
+            }
+            using(var window=new DarkWindow())
+            {
+                window.SetCaptionLanguage(false);window.Show();Application.DoEvents();
+                Button Caption(string name)=>window.Controls.Cast<Control>().SelectMany(c=>c.Controls.Cast<Control>()).OfType<Button>().Single(b=>b.AccessibleName==name);
+                Caption("Maximize or restore").PerformClick();Application.DoEvents();Assert(window.WindowState==FormWindowState.Maximized,"Custom window maximize works");
+                Caption("Maximize or restore").PerformClick();Application.DoEvents();Assert(window.WindowState==FormWindowState.Normal,"Custom window restore works");
+                Caption("Minimize").PerformClick();Application.DoEvents();Assert(window.WindowState==FormWindowState.Minimized,"Custom window minimize works");
+                window.WindowState=FormWindowState.Normal;Caption("Close").PerformClick();Assert(window.IsDisposed,"Custom window close works");
+            }
             using (var ui = new MainForm())
             {
                 ui.Show(); Application.DoEvents(); ui.CheckLayout(); ui.CheckSelection(scan);

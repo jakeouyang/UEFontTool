@@ -26,6 +26,8 @@ Windows 桌面工具：检测虚幻引擎游戏中的字体，查看语言提示
 
 **高级参数在哪里？** 顶部 **设置**中可直接粘贴 AES、手动选择引擎版本、设置输出名称及允许缺少特殊字符。默认自动检测版本；无法确定时才需手选。**更多操作**提供仅生成、打开输出目录、检测详情和专家工具。专家窗口的旧式专用构建仍只生成；自动安装和还原使用默认新手界面。
 
+窗口使用全黑标题栏，保留最小化、最大化/还原、关闭、拖动及边缘缩放。输入框与按钮统一高度；列表与字体详情之间的分隔条可拖动，长信息可换行和滚动。窗口较小时，内容区支持滚动，底部生成、安装和还原操作保持可见。
+
 ## 字体与容器的处理
 
 独立 `.ttf/.otf/.ufont` 通常生成 PAK；IoStore 内的 FontFace 需要修改资源并生成同名 `.pak/.utoc/.ucas`。软件按实际目标选择，不应因为能解包就假设只需要 PAK。输出名称必须以 `_P` 结尾，默认 `zz_UEFontTool_P`，照顾 CodeVein2 等加载命名规则。
@@ -94,7 +96,7 @@ dotnet build UEFontTool/UEFontTool.csproj -c Release
 dotnet UEFontTool/bin/Release/net8.0-windows/UEFontTool.dll --self-test test-results.txt
 ```
 
-自动测试使用合成包、系统字体和测试密钥，不需要游戏。`main` 推送、PR 或手动 Actions 会构建、测试并上传产物；推送与项目版本一致的 `v*` 标签（如 `v0.8.1`）会发布至 GitHub Releases。流水线使用 `GITHUB_TOKEN`，不需要提交个人令牌或 SSH 私钥。
+自动测试使用合成包、系统字体和测试密钥，不需要游戏。`main` 推送、PR 或手动 Actions 会构建、测试并上传产物；推送与项目版本一致的 `v*` 标签（如 `v0.8.2`）会发布至 GitHub Releases。流水线使用 `GITHUB_TOKEN`，不需要提交个人令牌或 SSH 私钥。
 
 ## 命令行
 
