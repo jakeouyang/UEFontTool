@@ -213,7 +213,7 @@ public static class FontService
                 prefixed[target] = prefixed.GetValueOrDefault(target) || inspected.Base != 0;
                 var missing = inspected.Map.Except(targetFont.Map).ToArray();
                 manifest.MissingCodepoints[target]=missing.Select(c=>$"U+{c:X}").ToArray();
-                if(protectPrivateUse && missing.Any(CookedFonts.IsPrivateUse)) throw new InvalidDataException("Replacement loses private-use glyphs; keep original or explicitly allow the loss: "+target);
+                if(protectPrivateUse && missing.Any(CookedFonts.IsPrivateUse)) throw new PrivateUseGlyphLossException(target,missing.Where(CookedFonts.IsPrivateUse).ToArray());
                 int cjk = missing.Count(c => c is >= 0x3400 and <= 0x9fff or >= 0x20000 and <= 0x323af);
                 manifest.VerifiedOriginals.Add(new(target, source.Pak, inspected.Info, missing.Length, cjk));
                 log($"字符覆盖差异 / Coverage difference: {missing.Length}; 汉字 / CJK: {cjk}（不代表游戏实际使用这些字 / actual game usage unknown）");

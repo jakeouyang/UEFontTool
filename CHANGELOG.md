@@ -1,5 +1,14 @@
 # Changelog / 更新记录
 
+## v0.8.6
+
+- Move Allow missing custom characters beside Game language; remove its duplicate Settings control. Keep protection enabled until the user explicitly checks the option.
+- Fix native combo-box white background/border areas and remove the unused white image gutter in More menus; keep dropdown surfaces dark.
+- Replace outdated Expert-mode guidance with the target name, missing private-use count/codepoints and beginner choices.
+- Clarify inline compatibility: verified FFRS UE5.6 external-to-inline and CodeVein2 UE5.4 inline rewriting, without a universal UE-version claim.
+- FFRS build-only checks reproduced the 14-character guard and generated all three files with explicit loss permission; existing game mods were unchanged.
+- 缺字选项移到游戏语言右侧；统一下拉框深色背景；缺字处理无需专家模式，直接说明目标、数量、码点和处理选择。
+
 ## v0.8.5
 
 - Fix More-menu ObjectDisposedException: keep the dropdown alive with its form and dispatch commands after click/close processing completes. Reopening the menu and opening modal diagnostics are covered by regression tests.

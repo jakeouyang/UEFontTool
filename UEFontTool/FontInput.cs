@@ -47,4 +47,15 @@ public sealed class FontCombo : ComboBox
         var bounds=e.Bounds;bounds.Inflate(-8,0);string value=(e.Index>=0?GetItemText(Items[e.Index]):Text)??"";
         TextRenderer.DrawText(e.Graphics,value,Font,bounds,ForeColor,TextFormatFlags.Left|TextFormatFlags.VerticalCenter|TextFormatFlags.NoPrefix);
     }
+    protected override void WndProc(ref Message m)
+    {
+        base.WndProc(ref m);
+        if(!IsHandleCreated||m.Msg is not (0xF or 0x317 or 0x318))return;
+        using var graphics=m.Msg is 0x317 or 0x318&&m.WParam!=IntPtr.Zero?Graphics.FromHdc(m.WParam):Graphics.FromHwnd(Handle);
+        using var background=new SolidBrush(BackColor);graphics.FillRectangle(background,ClientRectangle);
+        int arrowWidth=Math.Max(24,DeviceDpi*24/96);var textBounds=new Rectangle(12,0,Math.Max(1,Width-arrowWidth-20),Height);
+        TextRenderer.DrawText(graphics,Text,Font,textBounds,Enabled?ForeColor:Color.Gray,TextFormatFlags.Left|TextFormatFlags.VerticalCenter|TextFormatFlags.NoPrefix);
+        using var border=new Pen(Focused?Color.IndianRed:Color.FromArgb(75,75,75));graphics.DrawRectangle(border,0,0,Width-1,Height-1);
+        int x=Width-arrowWidth/2,y=Height/2;using var arrow=new SolidBrush(Enabled?ForeColor:Color.Gray);graphics.FillPolygon(arrow,new[]{new Point(x-4,y-2),new Point(x+4,y-2),new Point(x,y+3)});
+    }
 }

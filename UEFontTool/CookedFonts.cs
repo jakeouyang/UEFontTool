@@ -117,7 +117,7 @@ public static class CookedFonts
             var originalFont=external?new SfntFont(externalOriginal!):face!.Value.Font;
             var missing = originalFont.Codepoints.Except(newFont.Codepoints).ToArray();
             var icons = missing.Where(IsPrivateUse).ToArray();
-            if (icons.Length > 0 && !allowPrivateUseLoss) throw new InvalidDataException($"{e.ObjectName}: replacement loses {icons.Length} private-use glyphs; keep original or explicitly allowPrivateUseLoss.");
+            if (icons.Length > 0 && !allowPrivateUseLoss) throw new PrivateUseGlyphLossException(source,icons);
             byte[] rewritten;
             if(external)rewritten=InlineExternal(data,version,replacement);
             else

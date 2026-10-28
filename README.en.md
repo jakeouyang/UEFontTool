@@ -24,7 +24,7 @@ Download `UEFontTool-vVERSION-win-x64.zip` from **Releases**, extract the comple
 
 **Different fonts for different targets?** Check targets and use **More → Choose another font for checked items**. **Use default for checked items** removes the override. Select all/Clear affect only the current filter; hidden selections are counted below. Engine fallback fonts are excluded from recommendations.
 
-**Advanced controls?** **Settings** contains masked AES input, engine-version overrides, mod names and the explicit allow-custom-character-loss option. Version detection is automatic where possible. **More** offers Build only, output folder, detection details and Expert tools. The older dedicated expert builder still builds only; use the default interface for automated installation/restoration.
+**Advanced controls?** **Settings** contains masked AES input, engine-version overrides and mod names. The unchecked-by-default **Allow missing custom characters** option is beside **Game language** in the main window. Version detection is automatic where possible. **More** offers Build only, output folder, detection details and Expert tools. The older dedicated expert builder still builds only; use the default interface for automated installation/restoration.
 
 Language switching, GitHub and Settings sit in the title bar immediately before the minimize/maximize/close controls. The icon sits beside the window title, without a duplicate content heading. The black title bar retains minimize, maximize/restore, close, dragging and edge resizing. Inputs and buttons share a height. Drag the list/details divider to resize the information area; long details wrap and scroll. On smaller windows, content scrolls while build/install/restore actions remain visible.
 
@@ -36,7 +36,7 @@ Pinned retoc v0.1.5 and UAssetAPI 1.1.0 perform IoStore → legacy → FontFace 
 
 v0.8 fixes FFRS producing only a PAK: some sampled FontFace resources originally reference external `.ufont` data. Replacing that byte file alone did not override this loading path. The tool now recognizes the observed UE5.6 unversioned layout, checks coverage against the original external font, sets Inline loading policy and embeds the replacement before generating the complete container group. Conversion is limited to validated layouts; other native layouts are not guessed.
 
-Private-use character loss is blocked by default. These characters may be button icons or other custom symbols. Choose a more complete replacement, uncheck the target, or explicitly allow the loss in **Settings**. **Allowing loss does not add missing glyphs or preserve original icon outlines.** Missing codepoints are recorded. Ordinary missing CJK characters are reported, not merged.
+Private-use character loss is blocked by default. These characters may be button icons or other custom symbols. Choose a more complete replacement, uncheck the target, or explicitly check **Allow missing custom characters** beside **Game language**, without Expert mode. **Allowing loss does not add missing glyphs or preserve original icon outlines.** Missing codepoints are shown and recorded. Ordinary missing CJK characters are reported, not merged.
 
 ## Tested scope and limitations
 
@@ -51,6 +51,8 @@ Private-use character loss is blocked by default. These characters may be button
 
 Original mods in both test games were restored and checked against SHA-256 snapshots after testing. Runtime confirmations cover the sampled builds and selected fonts, not every menu, subtitle, icon or game version.
 
+**Inline support is neither universal nor FFRS-only.** Existing inline FontFace rewriting was verified in CodeVein2 (UE5.4); external-to-inline conversion currently targets only the observed FFRS UE5.6 layout. Other games must have parseable resources, a supported native layout and a verified container roundtrip. The engine-version dropdown lists parser parameters, not certified support for every font format in those versions.
+
 Supported layouts include bounded terminal SFNT arrays, the observed four-byte zero suffix, and the UE5.6 external FontFace layout above. External `.ubulk/.uptnl` rewriting, arbitrary native serialization layouts, offline atlases, TTC replacement, automatic icon merging and missing-glyph generation remain unsupported. **Universal UE4/UE5 compatibility is not guaranteed.**
 
 Details include static imports, font classes and selected/candidate containers. Static references do not prove runtime widget use; retoc's selected source does not guarantee an extra loader's mount order. Composite properties are exported when version/mappings permit; the expert window accepts a matching `.usmap`. Unresolved character ranges and fallback relationships still need review. Default embedded extraction filters paths containing `Font`; full-game UI reference traversal is not implemented.
@@ -64,6 +66,10 @@ Restore checks surviving tool files and suspended backups before making changes.
 Operation failures show their cause and full details in the main information area and More → Detection details. The latest error is saved to `data/last-error.txt` with key-shaped data redacted. Local paths remain; review before sharing.
 
 ## Troubleshooting
+
+### Does missing-character protection require Expert mode?
+
+No. The information area identifies the target, private-use character count and codepoints. Uncheck that target, choose a different replacement for it, or explicitly check Allow missing custom characters beside Game language and retry. Private-use characters may be icons or custom glyphs; allowing loss does not generate or merge glyphs. For FFRS, use the default guided container workflow; the legacy expert PAK scanner does not replace it.
 
 ### AES input / DragonSword V0 or magic errors
 
@@ -98,7 +104,7 @@ dotnet build UEFontTool/UEFontTool.csproj -c Release
 dotnet UEFontTool/bin/Release/net8.0-windows/UEFontTool.dll --self-test test-results.txt
 ```
 
-Automated tests use synthetic archives, system fonts and test-only keys; no game is needed. Main pushes, PRs and manual Actions runs build/test and upload artifacts. A `v*` tag matching the project version, such as `v0.8.5`, publishes to GitHub Releases. The workflow uses `GITHUB_TOKEN`; personal tokens and SSH private keys do not belong in source control.
+Automated tests use synthetic archives, system fonts and test-only keys; no game is needed. Main pushes, PRs and manual Actions runs build/test and upload artifacts. A `v*` tag matching the project version, such as `v0.8.6`, publishes to GitHub Releases. The workflow uses `GITHUB_TOKEN`; personal tokens and SSH private keys do not belong in source control.
 
 ## Command line
 

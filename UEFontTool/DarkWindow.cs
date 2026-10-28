@@ -52,4 +52,8 @@ public sealed class FontMenuColors : ProfessionalColorTable
     public override Color MenuBorder=>Color.FromArgb(50,50,50);
     public override Color MenuStripGradientBegin=>Color.Black;
     public override Color MenuStripGradientEnd=>Color.Black;
+    public override Color ToolStripDropDownBackground=>Color.Black;
+    public override Color ImageMarginGradientBegin=>Color.Black;
+    public override Color ImageMarginGradientMiddle=>Color.Black;
+    public override Color ImageMarginGradientEnd=>Color.Black;
 }

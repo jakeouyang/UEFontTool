@@ -36,8 +36,8 @@ public sealed partial class GuidedForm
     {
         string Redact(string value)=>System.Text.RegularExpressions.Regex.Replace(value,@"(?i)(?:0x)?(?<!\w)[a-f0-9]{64}(?!\w)","[redacted]");
         diagnosticText=Redact($"{DateTimeOffset.Now:O}\r\nGame: {root}\r\nPhase: {phase}\r\n\r\n{error}");
-        summary.Text=error.Message.Contains("private-use",StringComparison.OrdinalIgnoreCase)?T("新字体缺少特殊字符。请换字体，或在“设置”确认允许缺失后重试。","Custom characters are missing. Choose another font or explicitly allow the loss in Settings."):T("操作未完成：","Operation incomplete: ")+Redact(error.Message).Split(new[]{'\r','\n'},StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
-        problem=summary.Text;summary.ForeColor=Color.Khaki;detailsHeading.Text=T("本次操作错误 · 完整详情","Operation error · full details");details.Text=diagnosticText;
+        summary.Text=error is PrivateUseGlyphLossException missing?T($"{missing.FontName}：新字体缺少 {missing.Codepoints.Length} 个特殊字符。无需专家模式；可取消此项、换字体，或勾选“游戏语言”右侧的“允许缺少特殊字符”后重试。",$"{missing.FontName}: {missing.Codepoints.Length} custom characters are missing. No Expert mode required: uncheck it, choose another font, or allow the loss beside Game language."):error.Message.Contains("private-use",StringComparison.OrdinalIgnoreCase)?T("新字体缺少特殊字符。无需专家模式；可取消该项、换字体，或勾选“游戏语言”右侧的“允许缺少特殊字符”后重试。","Custom characters are missing. No Expert mode required: uncheck this target, choose another font, or allow the loss beside Game language."):T("操作未完成：","Operation incomplete: ")+Redact(error.Message).Split(new[]{'\r','\n'},StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
+        problem=summary.Text;summary.ForeColor=Color.Khaki;detailsHeading.Text=error is PrivateUseGlyphLossException?T("缺字处理 · 无需专家模式","Missing characters · no Expert mode required"):T("本次操作错误 · 完整详情","Operation error · full details");details.Text=error is PrivateUseGlyphLossException?error.Message:diagnosticText;
         try{Directory.CreateDirectory(FontService.DataRoot);File.WriteAllText(Path.Combine(FontService.DataRoot,"last-error.txt"),diagnosticText);}catch(IOException){}catch(UnauthorizedAccessException){}
     }
     internal async Task<bool> TestBuildWorkflow(string root,string replacement,string report,bool allowSymbolLoss)
@@ -45,5 +45,10 @@ public sealed partial class GuidedForm
         game.Text=root;font.Text=replacement;await AnalyzeAsync();allowSymbols.Checked=allowSymbolLoss;installAfterBuild=true;await BuildAsync();
         bool success=problem==null&&output!=null;
         File.WriteAllText(report,System.Text.Json.JsonSerializer.Serialize(new{Success=success,Output=output,Message=summary.Text,Error=diagnosticText},FontService.Json));return success;
+    }
+    internal void CheckCoverageGuidance()
+    {
+        allowSymbols.Checked=false;var error=new PrivateUseGlyphLossException("Game/Content/Font/TestFace.uasset",new[]{0xe001,0xe000});ReportFailure(error,"SYNTHETIC_GAME","build");
+        if(allowSymbols.Checked||!summary.Text.Contains("TestFace")||!summary.Text.Contains("2")||!details.Text.Contains("U+E000")||!details.Text.Contains("游戏语言")||!details.Text.Contains("No Expert mode required"))throw new Exception("Coverage failures must explain the target, count, missing codepoints and beginner choices without silently allowing loss.");
     }
 }

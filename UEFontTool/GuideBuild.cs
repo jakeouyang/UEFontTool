@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 
 namespace UEFontTool;
 
@@ -34,7 +34,7 @@ public static class GuideBuild
             File.WriteAllText(Path.Combine(destination,"result.json"),JsonSerializer.Serialize(new{Game=Path.GetFullPath(game),Name=name,Artifacts=artifacts,Targets=selected.Select(t=>new{t.Path,t.Inline,Font=t.FontOverride??defaultFont}),RuntimeVerified=false},FontService.Json));
         }
         catch(InvalidDataException ex) when(ex.Message.Contains("private-use",StringComparison.OrdinalIgnoreCase))
-        {throw new InvalidDataException("新字体缺少原字体中的特殊符号。为避免按键图标等变成方框，已停止生成。请在列表取消该字体，或换用覆盖更完整的新字体。专家模式可查看详细缺字。 / Replacement loses private-use symbols; build stopped to protect possible icons. Uncheck that target or choose a more complete font.\r\n"+ex.Message);}
+        {throw new InvalidDataException("新字体缺少特殊字符，已停止生成。无需专家模式：取消该字体、换用覆盖更完整的新字体，或勾选“游戏语言”右侧的“允许缺少特殊字符”后重试。允许缺失不会补字或保留原图标。 / Custom glyph loss blocked. No Expert mode required: keep this target unchanged, choose another font, or explicitly allow the loss beside Game language.\r\n"+ex.Message,ex);}
     }
     public static void MergeLoose(BuildManifest loose,string destination,string stage)
     {

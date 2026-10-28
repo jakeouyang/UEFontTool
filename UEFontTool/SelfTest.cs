@@ -112,7 +112,7 @@ public static class SelfTest
             Assert(LanguageMap.Select(scan, Languages.Simplified, false).SetEquals(new[] { "font.ufont" }), "Remember selection overrides automatic language paths");
             LanguageMap.Forget(scan, Languages.Simplified);
             Assert(LanguageMap.Select(scan, Languages.Simplified, false).Contains("b1/Content/Fonts/Font_SC_Regular.ufont"), "Reset restores automatic language detection");
-            using(var guided=new GuidedForm(false)){guided.Show();Application.DoEvents();guided.CheckExperience(scan);Assert(true,"Guided UI: recommendations, unknown languages, hidden selections and explicit replacement fonts");guided.CheckMoreMenu();Assert(true,"More menu: close, modal detection details and repeated reopening do not dispose the active dropdown");}
+            using(var guided=new GuidedForm(false)){guided.Show();Application.DoEvents();guided.CheckExperience(scan);Assert(true,"Guided UI: recommendations, unknown languages, hidden selections and explicit replacement fonts");guided.CheckCoverageGuidance();Assert(true,"Coverage guidance identifies missing symbols and beginner options without enabling symbol loss");guided.CheckMoreMenu();Assert(true,"More menu: close, modal detection details and repeated reopening do not dispose the active dropdown");}
             using(var input=new FontInput())
             {
                 int edits=0;input.TextChanged+=(_,_)=>edits++;input.Text="test-font.ttf";input.UseSystemPasswordChar=true;
