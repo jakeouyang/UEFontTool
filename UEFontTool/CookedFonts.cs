@@ -112,4 +112,9 @@ public static class CookedFonts
         return new { Source = source, Destination = destination, ReplacementSha256 = PakTools.Hash(replacement), Exports = changed, RuntimeVerified = false };
     }
     public static bool IsPrivateUse(int c) => c is >= 0xe000 and <= 0xf8ff or >= 0xf0000 and <= 0xffffd or >= 0x100000 and <= 0x10fffd;
+    public static byte[] ExtractFace(string path,string version,int export)
+    {
+        var asset=Open(path,version);var bytes=ExportBytes(path,asset.Exports[export]);var face=Locate(bytes)??throw new InvalidDataException("Unsupported inline font layout.");
+        return bytes.AsSpan(face.Offset,face.Length).ToArray();
+    }
 }

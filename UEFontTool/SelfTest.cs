@@ -16,6 +16,9 @@ public static class SelfTest
             Reject(() => PakTools.SafePath(path), "Reject virtual traversal: " + path);
         Assert(PakTools.SafePath("../../../b1/Content/font.ufont") == "b1/Content/font.ufont", "Normalize mount point");
         Assert(PakTools.SafePath("b1/Content//font.ufont") == "b1/Content/font.ufont", "Normalize repeated game path separators");
+        Assert(GuideHints.Language("Game/Content/L10N/zh-Hans/Font/NotoSansTC.uasset","Game").Languages==Languages.Simplified,"Prefer localization directory over conflicting font family label");
+        Assert(GuideHints.Language("Game/Content/Font/BO-UDReiminSCGb4-Bold.uasset","Game").Languages==Languages.Simplified,"Recognize Chinese font family markers in beginner mode");
+        Assert(GuideHints.Language("Game/Content/Font/Unknown.uasset","Game").Languages==Languages.None,"Do not invent a language for unmarked fonts");
         Assert(IoStoreFonts.Name("zz_Test_P")=="zz_Test_P","Preserve required _P basename");
         foreach(var bad in new[]{"Test","../Test_P","Test_P.utoc","Test_p"})Reject(()=>IoStoreFonts.Name(bad),"Reject invalid IoStore mod basename: "+bad);
         Assert(CookedFonts.IsPrivateUse(0xe000)&&CookedFonts.IsPrivateUse(0x100000)&&!CookedFonts.IsPrivateUse(0x4e00),"Recognize private-use glyph ranges without treating CJK as icons");
@@ -58,6 +61,9 @@ public static class SelfTest
             var mappedBuild=FontService.Build(mappedScan,arial,new[]{"A.ttf","B.ttf"},null,_=>{},new(){{"A.ttf",arial},{"B.ttf",times}});
             Assert(PakTools.Hash(PakTools.Run("get",mappedBuild.Artifact,"A.ttf"))==PakTools.Hash(testFont)&&PakTools.Hash(PakTools.Run("get",mappedBuild.Artifact,"B.ttf"))==PakTools.HashFile(times),"Apply distinct replacement fonts per resource and verify both payloads");
             Assert(mappedBuild.Replacements.Count==2&&mappedBuild.MissingCodepoints.Count==2,"Record per-resource font metadata and missing codepoints");
+            string companionStage=Path.Combine(root,"companion"),companion=Path.Combine(root,"mixed.pak");Directory.CreateDirectory(companionStage);File.WriteAllText(Path.Combine(companionStage,"metadata.bin"),"container metadata");PakTools.Run("pack","--version","V11",companionStage,companion);
+            GuideBuild.MergeLoose(mappedBuild,companion,Path.Combine(root,"merge-stage"));
+            Assert(System.Text.Encoding.UTF8.GetString(PakTools.Run("get",companion,"metadata.bin"))=="container metadata"&&PakTools.Hash(PakTools.Run("get",companion,"B.ttf"))==PakTools.HashFile(times),"Merge mixed font output without losing companion PAK metadata");
             File.WriteAllText(Path.Combine(stage, "font.ufont"), "test payload");
             string artifact = Path.Combine(root, "source.pak");
             PakTools.Run("pack", "--version", "V11", stage, artifact);
@@ -100,6 +106,7 @@ public static class SelfTest
             Assert(LanguageMap.Select(scan, Languages.Simplified, false).SetEquals(new[] { "font.ufont" }), "Remember selection overrides automatic language paths");
             LanguageMap.Forget(scan, Languages.Simplified);
             Assert(LanguageMap.Select(scan, Languages.Simplified, false).Contains("b1/Content/Fonts/Font_SC_Regular.ufont"), "Reset restores automatic language detection");
+            using(var guided=new GuidedForm(false)){guided.Show();Application.DoEvents();guided.CheckExperience(scan);Assert(true,"Guided UI: recommendations, unknown languages, hidden selections and explicit replacement fonts");}
             using (var ui = new MainForm())
             {
                 ui.Show(); Application.DoEvents(); ui.CheckLayout(); ui.CheckSelection(scan);

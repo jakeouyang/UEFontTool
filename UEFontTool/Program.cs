@@ -10,13 +10,24 @@ internal static class Program
     static int Main(string[] args)
     {
         ApplicationConfiguration.Initialize();
-        if (args.Length == 0) { Application.Run(new MainForm()); return 0; }
+        if (args.Length == 0) { Application.Run(new GuidedForm()); return 0; }
         AttachConsole(-1);
         string? resultFile = null;
         try
         {
             switch (args)
             {
+                case ["--expert"]: Application.Run(new MainForm());break;
+                case ["--test-guide",var game,var font,var output]:
+                    using(var form=new GuidedForm(false))
+                    {form.Shown+=async(_,_)=>{await form.TestAnalysis(game,font,output);form.Close();};Application.Run(form);}break;
+                case ["--render-guide", var output, .. var options]:
+                    using(var form=new GuidedForm(false))
+                    {
+                        form.SelectLanguage(!options.Contains("--en"));form.Show();Application.DoEvents();
+                        int sample=Array.IndexOf(options,"--sample");if(sample>=0&&sample+2<options.Length)form.Preview(options[sample+1],options[sample+2]);
+                        Application.DoEvents();using var bitmap=new Bitmap(form.Width,form.Height);form.DrawToBitmap(bitmap,new Rectangle(0,0,form.Width,form.Height));bitmap.Save(output);
+                    }break;
                 case ["inspect-cooked", var input, var version, var output]:
                     resultFile = output;
                     var inspections = Directory.GetFiles(input, "*.uasset", SearchOption.AllDirectories).Select(p => CookedFonts.Inspect(p, version)).ToArray();
@@ -26,6 +37,11 @@ internal static class Program
                     IoStoreFonts.Extract(game, output, version, filters.FirstOrDefault() ?? "Font"); break;
                 case ["build-cooked", var plan, var output]:
                     IoStoreFonts.Build(plan, output); break;
+                case ["build-guided",var planFile,var output]:
+                    var guidePlan=JsonSerializer.Deserialize<CookedPlan>(File.ReadAllText(planFile))!;
+                    var guideScan=FontService.Scan(guidePlan.Game,Environment.GetEnvironmentVariable("UEFONTTOOL_AES_KEY"),Console.WriteLine);
+                    var guideTargets=guidePlan.Replacements.Select(p=>new GuideTarget{Path=p.Key,Inline=p.Key.EndsWith(".uasset",StringComparison.OrdinalIgnoreCase),FontOverride=p.Value,Selected=true}).ToArray();
+                    GuideBuild.Build(guidePlan.Game,guideScan,guideTargets,"",Environment.GetEnvironmentVariable("UEFONTTOOL_AES_KEY"),string.IsNullOrWhiteSpace(guidePlan.Version)?GuideHints.Engine(guidePlan.Game).Version:guidePlan.Version,guidePlan.OutputName,output,guidePlan.AllowPrivateUseLoss);break;
                 case ["build-mapped", var planFile, var output]:
                     resultFile=output;
                     var mapped=JsonSerializer.Deserialize<CookedPlan>(File.ReadAllText(planFile))!;

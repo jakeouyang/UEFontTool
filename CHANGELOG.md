@@ -1,5 +1,14 @@
 # Changelog / 更新记录
 
+## v0.7.0
+
+- Guided beginner interface is now the default: game/font/language, automatic storage detection, recommendations and build.
+- Explain language evidence, mark unknowns, recognize SCGb/TCB5 families, and prefer supported inline resources over their matching standalone data.
+- Show actual replacements, remove Assign jargon, preview/export original fonts with explicit missing sample characters.
+- Detect engine versions from executable metadata or tested profiles; expose partial/unknown detection and move technical controls to Advanced/Expert.
+- Merge standalone replacements into the IoStore companion PAK when needed, preserving metadata and verifying payloads. Separate installable files with bilingual instructions.
+- 默认新手流程：自动检测、语言依据、原字体预览、直白的新字体设置、安装文件整理；无法判断的项目不自动勾选。
+
 ## v0.6.0
 
 - Experimental inline FontFace rewriting and retoc IoStore repacking without Unreal Editor; FFRS UE5.6 / CodeVein2 UE5.4 roundtrips verified.

@@ -6,7 +6,24 @@ A Windows desktop tool for scanning standalone fonts in Unreal Engine games and 
 
 ![English interface](docs/ui-en.png)
 
-## v0.6: inline FontFace and IoStore (experimental)
+## Quick start (v0.7 default interface)
+
+1. Choose the game folder and your new font.
+2. Select the **game's display language** and click **Analyze fonts**. You do not need to identify standalone fonts, inline FontFace or IoStore yourself.
+3. Review **Recommended targets**, including language hints, original names and **the replacement each item will use**. All targets use the font chosen above unless customized.
+4. Click **Build font mod**, then **Open output folder**. Follow `INSTALL.txt` to copy matching files into the stated game directory. Building does not install the mod; in-game appearance still needs verification.
+
+**Unsure about language?** Select a row to see localization-path, family-marker or known-profile evidence. These are hints, not proof of runtime use. Unmarked fonts are never selected automatically; review **Language unconfirmed**. **Preview original font** shows actual sample coverage and supports export; unavailable characters are shown as boxes instead of a silent system fallback.
+
+**Unsure whether fonts are embedded?** Analyze checks standalone and supported embedded resources together. Executable metadata or a tested profile chooses the engine version automatically. Only unresolved cases require a version in Advanced. Partial failures are explicit. A supported inline face is preferred over its corresponding standalone data, avoiding duplicate default selections.
+
+**What does Assign mean?** The default workflow no longer uses this term. Usually choose one new font at the top. For different title/body fonts, check items and use **Choose font for checked items**; **Use default for checked items** removes that override. The actual replacement remains visible in every row.
+
+Select/Clear visible affect only the current filter; hidden selections are counted below. AES keys, mod names and manual engine versions live in Advanced. The previous interface is under **Advanced → Expert mode**. Possible custom symbols/icons are protected by default; coverage failures stop with a next-step explanation. Advanced offers an explicit allow-symbol-loss option; glyphs are not automatically merged.
+
+## Advanced: inline FontFace and IoStore (experimental)
+
+The separate window below is available through Advanced → Expert mode. The default interface now unifies detection.
 
 Open **内联 / IoStore** above the list, choose the engine version, scan, select rows and assign replacement fonts. Each target can use a different font. Tested versions: FFRS UE5_6 and CodeVein2 UE5_4. The output basename must end in `_P`, without an extension. All `.pak/.utoc/.ucas` files share that basename; default: `zz_UEFontTool_P`.
 

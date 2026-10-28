@@ -107,7 +107,7 @@ public sealed class MainForm : Form
         var all=Button("全选 / All",()=>SetVisibleSelection(true)); var none=Button("取消 / None",()=>SetVisibleSelection(false));
         all.Width=150;none.Width=150;
         var cooked=Button("内联 / IoStore",()=>{using var window=new CookedForm(game.Text.Trim(),aesKey);window.ShowDialog(this);});cooked.Width=190;
-        var assign=Button("分配 / Assign",()=>{using var d=new OpenFileDialog{Filter="TTF / OTF|*.ttf;*.otf"};if(d.ShowDialog(this)==DialogResult.OK){foreach(var p in chosen)perFont[p]=d.FileName;Append(T("Assigned font to checked resources.","已为勾选的资源分配字体。"));}});assign.Width=180;
+        var assign=Button("所选项新字体",()=>{using var d=new OpenFileDialog{Filter="TTF / OTF|*.ttf;*.otf"};if(d.ShowDialog(this)==DialogResult.OK){foreach(var p in chosen)perFont[p]=d.FileName;Append(T("Assigned font to checked resources.","已为勾选的资源分配字体。"));}});assign.Width=180;
         listBar.Controls.AddRange(new Control[]{all,none,cooked,assign,protectIcons});listPanel.Controls.Add(detail);listPanel.Controls.Add(listBar);
         disabled.AddRange(new Control[]{assign,protectIcons});
         disabled.AddRange(new Control[]{all,none,cooked});
@@ -133,7 +133,7 @@ public sealed class MainForm : Form
         var footer = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, Margin = Padding.Empty };
         footer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100)); footer.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 80));
         footer.Controls.Add(status);
-        var version = Label(); version.Text = "v0.6"; version.ForeColor = Color.Gray; version.TextAlign = ContentAlignment.MiddleRight; footer.Controls.Add(version);
+        var version = Label(); version.Text = "v0.7"; version.ForeColor = Color.Gray; version.TextAlign = ContentAlignment.MiddleRight; footer.Controls.Add(version);
         layout.Controls.Add(footer, 0, 11);
         disabled.AddRange(new Control[] { game, font, filter, gameBrowse, fontBrowse, simplified, traditional, english, targets, advanced, scanButton, buildButton, installButton, restoreButton, exportButton, language, showEngine, remember });
         try

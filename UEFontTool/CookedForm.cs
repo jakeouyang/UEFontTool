@@ -24,7 +24,7 @@ public sealed class CookedForm : Form
         bar.Controls.Add(new Label{Text="引擎版本 / Engine",AutoSize=true});bar.Controls.Add(version);bar.Controls.Add(name);
         void Button(string text,Action click){var b=new Button{Text=text,AutoSize=true,BackColor=Color.Black,ForeColor=Color.IndianRed,FlatStyle=FlatStyle.Flat};b.Click+=(_,_)=>click();bar.Controls.Add(b);}
         Button("扫描 / Scan",()=>Run(false));Button("全选 / All",()=>Check(true));Button("清空 / None",()=>Check(false));
-        Button("分配字体 / Assign font",()=>{using var d=new OpenFileDialog{Filter="TTF / OTF|*.ttf;*.otf"};if(d.ShowDialog(this)==DialogResult.OK)foreach(DataGridViewRow r in grid.Rows)if(r.Cells[0].Value is true)r.Cells[3].Value=d.FileName;});
+        Button("选择新字体 / Choose font",()=>{using var d=new OpenFileDialog{Filter="TTF / OTF|*.ttf;*.otf"};if(d.ShowDialog(this)==DialogResult.OK)foreach(DataGridViewRow r in grid.Rows)if(r.Cells[0].Value is true)r.Cells[3].Value=d.FileName;});
         Button("生成 / Build",()=>Run(true));bar.Controls.Add(allow);bar.Controls.Add(state);
         Button("映射 / .usmap",()=>{using var d=new OpenFileDialog{Filter="Mappings|*.usmap"};if(d.ShowDialog(this)==DialogResult.OK)mapping=d.FileName;});
         grid.Columns.Add(new DataGridViewCheckBoxColumn{HeaderText="选择",Width=50});
