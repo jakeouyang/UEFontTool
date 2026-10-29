@@ -2,7 +2,9 @@
 
 [简体中文](README.md) · [Download / Releases](https://github.com/jakeouyang/UEFontTool/releases) · [Changelog](CHANGELOG.md)
 
-A Windows desktop tool to detect fonts in Unreal Engine games and build, install and restore font mods. Written in C# / .NET 8 / WinForms, with Chinese and English interfaces. A full Unreal Editor installation is not required.
+UEFontTool replaces fonts in supported Unreal Engine games on Windows without Unreal Editor. It provides font detection, language hints, per-font mapping, AES key input, PAK / supported IoStore packaging, and mod installation, conflict checking and restoration. Built with C# / .NET 8 / WinForms; English is the default interface, with Chinese available from the title bar.
+
+Inline support depends on the resource layout. Arbitrary FontFace layouts, external bulk rewriting, offline font atlases, TTC replacement and automatic glyph/icon merging remain unsupported. Compatibility with every UE4 / UE5 game is not guaranteed.
 
 ![English interface](docs/ui-en.png)
 
@@ -74,7 +76,9 @@ No. The information area identifies the target, private-use character count and 
 
 ### AES input / DragonSword V0 or magic errors
 
-Paste 64 hexadecimal digits (optional `0x`) or a Base64-encoded 32-byte key in **Settings → AES key**. Input is masked, session-only and not saved to configuration or logs. Apply an empty field to clear it.
+[AES prompt example](docs/aes-required-en.png) · [Key-entry dialog](docs/aes-dialog-en.png)
+
+When encrypted resources need a key, the main information area shows a yellow prompt and an **Enter AES key** button. Paste 64 hexadecimal digits (optional `0x`) or a Base64-encoded 32-byte key, then **Apply and rescan**. Input is masked, session-only and not saved to configuration or logs; the tool does not find keys automatically. **Settings → AES key** also lets you edit or clear it. Failed encrypted reads offer a key-check entry while retaining engine-version/format explanations; generic read failures are not automatically labeled AES errors.
 
 The old repak `trying version V0 failed` message is a final generic format probe failure, not the game's actual version. The observed DragonSword archives use custom version 101 with additional index, string and entry masking after AES decryption. A dedicated reader is required. It checks keys against the primary index SHA-1 and validates index ranges and extraction, but not every game variant is supported.
 
@@ -105,7 +109,7 @@ dotnet build UEFontTool/UEFontTool.csproj -c Release
 dotnet UEFontTool/bin/Release/net8.0-windows/UEFontTool.dll --self-test test-results.txt
 ```
 
-Automated tests use synthetic archives, system fonts and test-only keys; no game is needed. Main pushes, PRs and manual Actions runs build/test and upload artifacts. A `v*` tag matching the project version, such as `v0.8.9`, publishes to GitHub Releases. The workflow uses `GITHUB_TOKEN`; personal tokens and SSH private keys do not belong in source control.
+Automated tests use synthetic archives, system fonts and test-only keys; no game is needed. Main pushes, PRs and manual Actions runs build/test and upload artifacts. A `v*` tag matching the project version, such as `v0.8.10`, publishes to GitHub Releases. The workflow uses `GITHUB_TOKEN`; personal tokens and SSH private keys do not belong in source control.
 
 ## Command line
 

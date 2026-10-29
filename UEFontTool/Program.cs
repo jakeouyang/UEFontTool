@@ -18,6 +18,8 @@ internal static class Program
             switch (args)
             {
                 case ["--expert"]: Application.Run(new MainForm());break;
+                case ["--render-aes",var output,..var options]:
+                    using(var form=new GuidedForm(false)){form.SelectLanguage(!options.Contains("--en"));form.Show();Application.DoEvents();form.RenderAesDialog(output);}break;
                 case ["--test-guide-build",var game,var font,var output,..var options]:
                     bool completed=false;
                     using(var form=new GuidedForm(false)){form.Shown+=async(_,_)=>{completed=await form.TestBuildWorkflow(game,font,output,options.Contains("--allow-symbol-loss"));form.Close();};Application.Run(form);}return completed?0:1;
@@ -31,7 +33,7 @@ internal static class Program
                     using(var form=new GuidedForm(false))
                     {
                         form.SelectLanguage(!options.Contains("--en"));if(options.Contains("--small"))form.Size=form.MinimumSize;form.Show();Application.DoEvents();
-                        int sample=Array.IndexOf(options,"--sample");if(sample>=0&&sample+2<options.Length)form.Preview(options[sample+1],options[sample+2]);
+                        int sample=Array.IndexOf(options,"--sample");if(sample>=0&&sample+2<options.Length)form.Preview(options[sample+1],options[sample+2]);if(options.Contains("--aes-required"))form.PreviewAesHint();
                         Application.DoEvents();using var bitmap=new Bitmap(form.Width,form.Height);form.DrawToBitmap(bitmap,new Rectangle(0,0,form.Width,form.Height));bitmap.Save(output);
                     }break;
                 case ["inspect-cooked", var input, var version, var output]:

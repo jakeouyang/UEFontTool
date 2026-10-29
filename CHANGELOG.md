@@ -1,5 +1,13 @@
 # Changelog / 更新记录
 
+## v0.8.10
+
+- Default to English in the guided and expert windows; retain title-bar language switching.
+- Detect encrypted PAK/IoStore headers and show a prominent missing-AES prompt with a direct masked key-entry dialog and Apply and rescan action. Keep keys session-only.
+- Distinguish missing keys, invalid key input and ambiguous encrypted read failures; retain engine-version/format alternatives instead of blaming every read failure on AES.
+- Add short bilingual feature/limitation introductions and update the AES instructions. Verify the direct dialog/rescan flow with a synthetic encrypted package and missing-key guidance against PBZ without changing its installed mod.
+- 默认英文；资源需要 AES 时直接显示提示和输入入口，支持应用后重新检测；补齐中英文简介及未支持范围说明。
+
 ## v0.8.9
 
 - Fix PBZ's split-container read failure with a source-pinned, tested retoc partition reader: read all 66 UCAS partitions without merging/copying the game archives.

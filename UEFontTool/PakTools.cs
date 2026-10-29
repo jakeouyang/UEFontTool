@@ -28,13 +28,14 @@ public static class PakTools
     public static byte[] ReadWithKeys(List<byte[]> keys, params string[] args)
     {
         try { return Run(args); }
-        catch (InvalidDataException)
+        catch (InvalidDataException first)
         {
             foreach (var key in keys)
             {
                 try { return Run(new[] { "--aes-key", Convert.ToHexString(key) }.Concat(args).ToArray()); }
                 catch (InvalidDataException) { }
             }
+            if(first.Message.Contains("encrypted but no key",StringComparison.OrdinalIgnoreCase))throw new InvalidDataException(keys.Count==0?"缺少 AES 密钥 / Missing AES key. Enter the key for this game build.":"加密资源无法读取，请核对 AES 密钥及格式支持 / Encrypted archive could not be read; check the key and game format.");
             throw new InvalidDataException($"PAK 无法读取：已尝试 {keys.Count} 个 AES 密钥；请检查密钥及游戏格式适配。 / PAK unreadable after trying {keys.Count} AES key(s); check the key and game-specific format. " + FooterDiagnostic(args.LastOrDefault(File.Exists)));
         }
     }

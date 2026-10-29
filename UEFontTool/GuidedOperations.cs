@@ -34,10 +34,12 @@ public sealed partial class GuidedForm
     }
     void ReportFailure(Exception error,string root,string phase)
     {
+        aesPrompt=EncryptionHints.Failure(error.Message,!string.IsNullOrWhiteSpace(key.Text));RefreshAesEntry();
         string Redact(string value)=>System.Text.RegularExpressions.Regex.Replace(value,@"(?i)(?:0x)?(?<!\w)[a-f0-9]{64}(?!\w)","[redacted]");
         diagnosticText=Redact($"{DateTimeOffset.Now:O}\r\nGame: {root}\r\nPhase: {phase}\r\n\r\n{error}");
         summary.Text=error is PrivateUseGlyphLossException missing?T($"{missing.FontName}：新字体缺少 {missing.Codepoints.Length} 个特殊字符。无需专家模式；可取消此项、换字体，或勾选“游戏语言”右侧的“允许缺少特殊字符”后重试。",$"{missing.FontName}: {missing.Codepoints.Length} custom characters are missing. No Expert mode required: uncheck it, choose another font, or allow the loss beside Game language."):error.Message.Contains("private-use",StringComparison.OrdinalIgnoreCase)?T("新字体缺少特殊字符。无需专家模式；可取消该项、换字体，或勾选“游戏语言”右侧的“允许缺少特殊字符”后重试。","Custom characters are missing. No Expert mode required: uncheck this target, choose another font, or allow the loss beside Game language."):T("操作未完成：","Operation incomplete: ")+Redact(error.Message).Split(new[]{'\r','\n'},StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
         problem=summary.Text;summary.ForeColor=Color.Khaki;detailsHeading.Text=error is PrivateUseGlyphLossException?T("缺字处理 · 无需专家模式","Missing characters · no Expert mode required"):T("本次操作错误 · 完整详情","Operation error · full details");details.Text=error is PrivateUseGlyphLossException?error.Message:diagnosticText;
+        if(aesPrompt!=AesPrompt.None)summary.Text=AesMessage();
         try{Directory.CreateDirectory(FontService.DataRoot);File.WriteAllText(Path.Combine(FontService.DataRoot,"last-error.txt"),diagnosticText);}catch(IOException){}catch(UnauthorizedAccessException){}
     }
     internal async Task<bool> TestBuildWorkflow(string root,string replacement,string report,bool allowSymbolLoss)

@@ -10,6 +10,7 @@ public class TextButton : Button
     }
     public Color HoverTextColor{get=>hoverText;set{hoverText=value;UpdateText();}}
     protected override bool ShowFocusCues=>false;
+    public override void NotifyDefault(bool value)=>base.NotifyDefault(false);
     void UpdateBackground(){FlatAppearance.MouseOverBackColor=BackColor;FlatAppearance.MouseDownBackColor=BackColor;}
     void UpdateText()
     {

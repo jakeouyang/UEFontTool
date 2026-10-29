@@ -2,7 +2,9 @@
 
 [English](README.en.md) · [下载 / Releases](https://github.com/jakeouyang/UEFontTool/releases) · [更新记录](CHANGELOG.md)
 
-Windows 桌面工具：检测虚幻引擎游戏中的字体，查看语言提示，生成、安装及还原字体 MOD。采用 C# / .NET 8 / WinForms，支持中文和英文界面，不需要完整 Unreal Editor。
+UEFontTool 是无需安装 UE 编辑器的 Windows 游戏字体替换工具，支持字体检测与语言提示、多字体映射、AES 密钥输入、PAK / 受支持的 IoStore 打包，以及自动安装、冲突检查和还原。采用 C# / .NET 8 / WinForms，默认英文界面，顶部可切换中文。
+
+内联字体支持取决于具体资源布局；暂不支持任意 FontFace 布局、外部 bulk 数据重写、离线字体图集、TTC 替换和自动补字 / 图标合并，不能保证全部 UE4 / UE5 游戏兼容。
 
 ![中文界面](docs/ui-zh.png)
 
@@ -74,7 +76,9 @@ v0.8 修复 FFRS 只输出 PAK 的问题：该样本的部分 FontFace 原本引
 
 ### AES 怎么输入？DragonSword 为什么仍报 V0 / magic 错误？
 
-在 **设置 → AES 密钥**粘贴 64 位十六进制（可带 `0x`）或表示 32 字节的 Base64。输入默认遮蔽，仅本次会话使用，不保存到配置或日志；应用空输入可清除。
+[AES 提示示例](docs/aes-required-zh.png) · [密钥输入窗口](docs/aes-dialog-zh.png)
+
+检测到资源加密且缺少密钥时，主信息区会显示黄色提示和 **输入 AES 密钥**按钮。点击后粘贴 64 位十六进制（可带 `0x`）或表示 32 字节的 Base64，再点击 **应用并重新检测**。输入默认遮蔽，仅本次会话使用，不保存到配置或日志；工具不会自动查找密钥。也可从 **设置 → AES 密钥**修改或应用空输入清除。读取加密资源失败时，入口改为检查密钥，并保留引擎版本 / 格式不兼容的可能性，不把所有读取错误都判断为 AES 错误。
 
 旧版 repak 最后打印的 `trying version V0 failed` 是通用格式探测失败，不代表游戏一定是 V0。DragonSword 样本使用自定义版本 101，AES 解密后还有索引、字符串和条目混淆，需要专用读取器。适配器用原版主索引 SHA-1 检查密钥，校验索引范围和提取结果；并未实现所有游戏变体。
 
@@ -105,7 +109,7 @@ dotnet build UEFontTool/UEFontTool.csproj -c Release
 dotnet UEFontTool/bin/Release/net8.0-windows/UEFontTool.dll --self-test test-results.txt
 ```
 
-自动测试使用合成包、系统字体和测试密钥，不需要游戏。`main` 推送、PR 或手动 Actions 会构建、测试并上传产物；推送与项目版本一致的 `v*` 标签（如 `v0.8.9`）会发布至 GitHub Releases。流水线使用 `GITHUB_TOKEN`，不需要提交个人令牌或 SSH 私钥。
+自动测试使用合成包、系统字体和测试密钥，不需要游戏。`main` 推送、PR 或手动 Actions 会构建、测试并上传产物；推送与项目版本一致的 `v*` 标签（如 `v0.8.10`）会发布至 GitHub Releases。流水线使用 `GITHUB_TOKEN`，不需要提交个人令牌或 SSH 私钥。
 
 ## 命令行
 

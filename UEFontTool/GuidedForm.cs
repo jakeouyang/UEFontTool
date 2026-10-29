@@ -18,7 +18,7 @@ public sealed partial class GuidedForm : DarkWindow
     readonly Button diagnosticButton=Button();string diagnosticText="";
     readonly List<GuideTarget> targets=new();
     ScanReport? scan;string? cookedFolder,detectedVersion,output;
-    bool zh=true,busy,filling,hasAnalyzed,partial;string? problem;
+    bool zh=false,busy,filling,hasAnalyzed,partial;string? problem;
     string T(string cn,string en)=>zh?cn:en;
     Languages ChosenLanguage=>language.SelectedIndex switch{1=>Languages.Traditional,2=>Languages.English,_=>Languages.Simplified};
     static FontInput Input()=>new();
@@ -33,7 +33,7 @@ public sealed partial class GuidedForm : DarkWindow
         all.Text=T("全选","Select all");none.Text=T("清空","Clear");build.Text=T("生成并安装","Build and install");
         allowSymbols.Text=T("允许缺少特殊字符（可能影响图标）","Allow missing custom characters (may affect icons)");preview.Text=T("预览原字体","Preview original");string[] headers=zh?new[]{"✓","原字体名称","语言识别","处理方式","将使用的新字体"}:new[]{"Use","Original font","Language hint","Handling","Replacement font"};for(int i=0;i<headers.Length;i++)grid.Columns[i].HeaderText=headers[i];grid.Columns[2].Width=zh?185:Math.Max(220,TextRenderer.MeasureText("Traditional Chinese",grid.Font).Width+32);if(Visible)AlignFieldHeights();RefreshSummary();Fill();
     }
-    void InvalidateAnalysis(){if(busy)return;scan=null;targets.Clear();cookedFolder=null;detectedVersion=null;hasAnalyzed=false;partial=false;problem=null;diagnosticText="";engineNote.Text="";allowSymbols.Checked=false;output=null;Fill();RefreshSummary();}
+    void InvalidateAnalysis(){if(busy)return;scan=null;targets.Clear();cookedFolder=null;detectedVersion=null;hasAnalyzed=false;partial=false;problem=null;aesPrompt=AesPrompt.None;encryptedArchives=false;diagnosticText="";engineNote.Text="";allowSymbols.Checked=false;output=null;Fill();RefreshSummary();}
     void MarkAlternatives(){var embedded=targets.Where(t=>t.Inline).Select(t=>Path.ChangeExtension(t.Path,null)).ToHashSet(StringComparer.OrdinalIgnoreCase);foreach(var t in targets)t.AlternativeData=!t.Inline&&embedded.Contains(Path.ChangeExtension(t.Path,null));}
     void Recommend(){if(scan==null)return;MarkAlternatives();var saved=LanguageMap.Select(scan,ChosenLanguage,false);foreach(var t in targets){t.Recommended=!t.Engine&&!t.AlternativeData&&(t.Inline?(t.Language.Languages&ChosenLanguage)!=0:saved.Contains(t.Path)||(t.Language.Languages&ChosenLanguage)!=0);t.Selected=t.Recommended;}}
     void Fill()
@@ -53,10 +53,12 @@ public sealed partial class GuidedForm : DarkWindow
     }
     void RefreshSummary()
     {
+        RefreshAesEntry();
         if(busy)return;summary.ForeColor=problem!=null?Color.Khaki:Color.Silver;summary.Text=problem??(!hasAnalyzed?T("选择游戏和新字体，再点击“检测字体”。文件格式由工具自动处理。","Choose a game and font, then Detect fonts. Packaging is automatic."):T($"已检测：{targets.Count(t=>!t.Inline)} 项普通字体，{targets.Count(t=>t.Inline)} 项可处理的封装字体。{targets.Count(t=>!t.Engine&&t.Language.Languages==Languages.None)} 项语言待确认（未自动勾选）。",$"Detected {targets.Count(t=>!t.Inline)} standalone and {targets.Count(t=>t.Inline)} supported embedded fonts. {targets.Count(t=>!t.Engine&&t.Language.Languages==Languages.None)} language-unconfirmed items were not automatically selected.")+(partial?Environment.NewLine+T("部分资源未能识别，请在“更多操作”查看检测详情。","Some resources were not inspected; see More → Detection details."):""));
+        if(aesPrompt!=AesPrompt.None){summary.ForeColor=Color.Khaki;summary.Text=AesMessage();return;}
         if(problem==null&&hasAnalyzed&&!targets.Any(t=>t.Recommended))summary.Text=T("未找到当前语言的可靠推荐。请切换“语言待确认”预览原字体，或查看“全部游戏字体”；有些游戏简繁共用，需手动确认。","No reliable recommendations for this language. Review Language unconfirmed or All game fonts and preview originals; some games share Chinese fonts.")+(partial?Environment.NewLine+T("另有部分资源未能识别，请查看检测详情。","Some resources could not be inspected; see Detection details."):"");
     }
-    void SetBusy(bool value){busy=value;UseWaitCursor=value;languageMenu.Enabled=githubMenu.Enabled=settingsMenu.Enabled=!value;foreach(var c in new Control[]{game,font,gamePick,fontPick,language,allowSymbols,analyze,advancedToggle,advanced,view,search,all,none,grid,custom,reset,toggleLanguage,preview,restoreFonts,moreActions})c.Enabled=!value;UpdateSelection();}
+    void SetBusy(bool value){busy=value;UseWaitCursor=value;languageMenu.Enabled=githubMenu.Enabled=settingsMenu.Enabled=!value;foreach(var c in new Control[]{game,font,gamePick,fontPick,language,allowSymbols,analyze,advancedToggle,advanced,view,search,all,none,grid,custom,reset,toggleLanguage,preview,restoreFonts,moreActions,aesEntry})c.Enabled=!value;UpdateSelection();}
     async void PreviewOriginal()
     {
         if(busy||scan==null||grid.CurrentRow?.Tag is not GuideTarget target){details.Text=T("请先检测字体，再点击列表中的一项。","Analyze first, then click a font in the list.");return;}
@@ -81,7 +83,7 @@ public sealed partial class GuidedForm : DarkWindow
         if(busy)return;string root=game.Text.Trim(),aes=key.Text.Trim(),manual=engine.SelectedIndex>0?engine.Text:"";SetBusy(true);summary.Text=T("正在检测游戏字体，首次分析封装资源可能需要一些时间…","Analyzing game fonts; the first embedded-resource analysis may take a while…");string? old=Environment.GetEnvironmentVariable("UEFONTTOOL_AES_KEY");
         try
         {
-            PakTools.Keys(aes);FontService.LocatePaks(root);targets.Clear();hasAnalyzed=false;output=null;problem=null;diagnosticText="";engineNote.Text="";partial=false;Directory.CreateDirectory(FontService.DataRoot);File.WriteAllText(Path.Combine(FontService.DataRoot,"settings.json"),JsonSerializer.Serialize(new Dictionary<string,string>{{"game",root},{"font",font.Text}},FontService.Json));
+            aesPrompt=AesPrompt.None;encryptedArchives=false;PakTools.Keys(aes);string paks=FontService.LocatePaks(root);var encrypted=EncryptionHints.EncryptedArchives(paks);encryptedArchives=encrypted.Length>0;if(encryptedArchives&&string.IsNullOrEmpty(aes))aesPrompt=AesPrompt.Missing;targets.Clear();hasAnalyzed=false;output=null;problem=null;diagnosticText="";engineNote.Text="";partial=false;Directory.CreateDirectory(FontService.DataRoot);File.WriteAllText(Path.Combine(FontService.DataRoot,"settings.json"),JsonSerializer.Serialize(new Dictionary<string,string>{{"game",root},{"font",font.Text}},FontService.Json));
             scan=await Task.Run(()=>FontService.Scan(root,aes,_=>{}));foreach(var p in scan.Fonts.Keys)targets.Add(new(){Path=p,Language=GuideHints.Language(p,scan.Profile)});partial=scan.Errors.Count>0;
             if(scan.IoStoreContainers>0)
             {
@@ -91,12 +93,13 @@ public sealed partial class GuidedForm : DarkWindow
                 {
                     cookedFolder=Path.Combine(FontService.DataRoot,"analysis",Guid.NewGuid().ToString("N"));Environment.SetEnvironmentVariable("UEFONTTOOL_AES_KEY",aes);
                     try{await Task.Run(()=>IoStoreFonts.Extract(root,cookedFolder,detectedVersion,"Font"));var reports=JsonSerializer.Deserialize<CookedReport[]>(File.ReadAllText(Path.Combine(cookedFolder,"font-analysis.json")))!;diagnosticText=engineNote.Text+Environment.NewLine+string.Join(Environment.NewLine,reports.Select(r=>Path.GetRelativePath(cookedFolder,r.Path)+": inline="+r.Faces.Count+", external="+r.ExternalFaces.Count+", source="+r.ResolvedContainer+(r.Error!=null?"; "+r.Error:"")));foreach(var r in reports){string p=Path.GetRelativePath(cookedFolder,r.Path).Replace('\\','/');if(r.Faces.Count>0||(r.ExternalFaces.Count>0&&scan.Fonts.ContainsKey(Path.ChangeExtension(p,".ufont"))))targets.Add(new(){Path=p,Inline=true,Cooked=r,Language=GuideHints.Language(p,scan.Profile)});}partial|=reports.Any(r=>r.Error!=null||(r.Classes.Contains("FontFace")&&r.Faces.Count==0&&r.ExternalFaces.Count==0));}
-                    catch(Exception ex){partial=true;problem=T("普通字体已识别，但封装字体分析未完成。当前列表不完整，请在“更多操作”查看检测详情。","Standalone fonts were inspected, but embedded analysis did not finish. This list is incomplete; see More → Detection details.");diagnosticText=ex.Message;engineNote.Text=T("封装字体读取失败，请查看检测详情并确认版本或密钥。","Embedded analysis failed; check version/key in Detection details.");advanced.Visible=true;}
+                    catch(Exception ex){aesPrompt=EncryptionHints.Failure(ex.Message,!string.IsNullOrEmpty(aes),encryptedArchives);partial=true;problem=T("普通字体已识别，但封装字体分析未完成。当前列表不完整，请在“更多操作”查看检测详情。","Standalone fonts were inspected, but embedded analysis did not finish. This list is incomplete; see More → Detection details.");diagnosticText=ex.Message;engineNote.Text=T("封装字体读取失败，请查看检测详情并确认版本或密钥。","Embedded analysis failed; check version/key in Detection details.");advanced.Visible=true;}
                 }
             }
+            foreach(string error in scan.Errors){bool encryptedError=encrypted.Any(p=>error.StartsWith(Path.GetFileName(p)+":",StringComparison.OrdinalIgnoreCase));var hint=EncryptionHints.Failure(error,!string.IsNullOrEmpty(aes),encryptedError);if(hint!=AesPrompt.None)aesPrompt=hint;}
             hasAnalyzed=true;Recommend();if(scan.Errors.Count>0){advanced.Visible=true;diagnosticText+=Environment.NewLine+string.Join(Environment.NewLine,scan.Errors);engineNote.Text+=Environment.NewLine+T($"{scan.Errors.Count} 个资源包读取失败；如需其中字体，请查看检测详情并检查密钥或格式支持。",$"{scan.Errors.Count} archives could not be read; see Detection details to check key/format support.");}
         }
-        catch(Exception ex){problem=T("检测未完成：","Analysis incomplete: ")+ex.Message;hasAnalyzed=false;}
+        catch(Exception ex){aesPrompt=EncryptionHints.Failure(ex.Message,!string.IsNullOrEmpty(aes));problem=T("检测未完成：","Analysis incomplete: ")+ex.Message;hasAnalyzed=false;}
         finally{Environment.SetEnvironmentVariable("UEFONTTOOL_AES_KEY",old);SetBusy(false);RefreshSummary();Fill();}
     }
     internal void Preview(string scanFile,string analysisFolder)
@@ -110,7 +113,7 @@ public sealed partial class GuidedForm : DarkWindow
     internal async Task TestAnalysis(string root,string replacement,string resultFile)
     {
         game.Text=root;font.Text=replacement;key.Text=Environment.GetEnvironmentVariable("UEFONTTOOL_AES_KEY")??"";await AnalyzeAsync();
-        File.WriteAllText(resultFile,JsonSerializer.Serialize(new{Completed=hasAnalyzed,Partial=partial,Problem=problem,Engine=detectedVersion,Standalone=targets.Count(t=>!t.Inline),Embedded=targets.Count(t=>t.Inline),Recommended=targets.Count(t=>t.Selected),Unconfirmed=targets.Count(t=>!t.Engine&&t.Language.Languages==Languages.None),Targets=targets.Select(t=>new{t.Path,t.Inline,t.Selected,t.AlternativeData,t.Language})},FontService.Json));
+        File.WriteAllText(resultFile,JsonSerializer.Serialize(new{Completed=hasAnalyzed,Partial=partial,Problem=problem,AesPrompt=aesPrompt.ToString(),AesEntryVisible=aesEntry.Visible,Engine=detectedVersion,Standalone=targets.Count(t=>!t.Inline),Embedded=targets.Count(t=>t.Inline),Recommended=targets.Count(t=>t.Selected),Unconfirmed=targets.Count(t=>!t.Engine&&t.Language.Languages==Languages.None),Targets=targets.Select(t=>new{t.Path,t.Inline,t.Selected,t.AlternativeData,t.Language})},FontService.Json));
         using var bitmap=new Bitmap(Width,Height);DrawToBitmap(bitmap,new Rectangle(0,0,Width,Height));bitmap.Save(resultFile+".png");
     }
     internal void CheckExperience(ScanReport sample)

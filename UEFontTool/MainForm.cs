@@ -20,10 +20,11 @@ public sealed class MainForm : Form
     readonly Dictionary<string,string> perFont = new(StringComparer.OrdinalIgnoreCase);
     readonly CheckBox protectIcons = new() { Text="保护私用字形 / PUA",Checked=true,AutoSize=true,ForeColor=Color.Silver };
     ScanReport? report;
-    bool busy, filling, chinese = true;
+    bool busy, filling, chinese = false;
     string? aesKey;
     Languages Languages => (simplified.Checked ? Languages.Simplified : 0) | (traditional.Checked ? Languages.Traditional : 0) | (english.Checked ? Languages.English : 0);
     string T(string en, string zh) => chinese ? zh : en;
+    internal bool EnglishDefault=>!chinese&&language.Text=="中文";
     [DllImport("user32.dll")] static extern bool ReleaseCapture();
     [DllImport("user32.dll")] static extern IntPtr SendMessage(IntPtr window, int message, IntPtr wparam, IntPtr lparam);
 
@@ -101,10 +102,10 @@ public sealed class MainForm : Form
         listPanel.Controls.Add(targets); layout.Controls.Add(listPanel, 0, 7);
         var detail = new TextBox { Dock=DockStyle.Bottom,Height=48,Multiline=true,ReadOnly=true,ScrollBars=ScrollBars.Vertical,BackColor=PanelColor,ForeColor=Color.Silver,BorderStyle=BorderStyle.None };
         var listBar = new FlowLayoutPanel { Dock=DockStyle.Top,Height=36,WrapContents=false };
-        var all=Button("全选 / All",()=>SetVisibleSelection(true)); var none=Button("取消 / None",()=>SetVisibleSelection(false));
+        var all=Button("",()=>SetVisibleSelection(true));all.Name="selectAll";var none=Button("",()=>SetVisibleSelection(false));none.Name="clearAll";
         all.Width=150;none.Width=150;
-        var cooked=Button("内联 / IoStore",()=>{using var window=new CookedForm(game.Text.Trim(),aesKey);window.ShowDialog(this);});cooked.Width=190;
-        var assign=Button("所选项新字体",()=>{using var d=new OpenFileDialog{Filter="TTF / OTF|*.ttf;*.otf"};if(d.ShowDialog(this)==DialogResult.OK){foreach(var p in chosen)perFont[p]=d.FileName;Append(T("Assigned font to checked resources.","已为勾选的资源分配字体。"));}});assign.Width=180;
+        var cooked=Button("",()=>{using var window=new CookedForm(game.Text.Trim(),aesKey);window.ShowDialog(this);});cooked.Name="cookedTools";cooked.Width=190;
+        var assign=Button("",()=>{using var d=new OpenFileDialog{Filter="TTF / OTF|*.ttf;*.otf"};if(d.ShowDialog(this)==DialogResult.OK){foreach(var p in chosen)perFont[p]=d.FileName;Append(T("Assigned font to checked resources.","已为勾选的资源分配字体。"));}});assign.Name="assignFont";assign.Width=180;
         listBar.Controls.AddRange(new Control[]{all,none,cooked,assign,protectIcons});listPanel.Controls.Add(detail);listPanel.Controls.Add(listBar);
         disabled.AddRange(new Control[]{assign,protectIcons});
         disabled.AddRange(new Control[]{all,none,cooked});
@@ -128,7 +129,7 @@ public sealed class MainForm : Form
         var hint = Label(); hint.ForeColor = Color.Gray; hint.Font = new Font("Microsoft YaHei UI", 9);
         hint.Name = "limit"; layout.Controls.Add(hint, 0, 10);
         var footer = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, Margin = Padding.Empty };
-        footer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100)); footer.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 80));
+        footer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100)); footer.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 120));
         footer.Controls.Add(status);
         var version = Label(); version.Text = "v" + Application.ProductVersion.Split('+')[0]; version.ForeColor = Color.Gray; version.TextAlign = ContentAlignment.MiddleRight; footer.Controls.Add(version);
         layout.Controls.Add(footer, 0, 11);
@@ -147,7 +148,7 @@ public sealed class MainForm : Form
         if (!string.IsNullOrWhiteSpace(game.Text)) game.AutoCompleteCustomSource.Add(game.Text);
         game.TextChanged += (_, _) => { report = null; chosen.Clear();perFont.Clear(); FillTargets(); };
         FormClosing += (_, e) => { if (busy) { e.Cancel = true; Append(T("Please wait until the operation finishes.", "请等待当前操作完成。")); } };
-        SelectLanguage(true);
+        SelectLanguage(false);
         Append(T("Select a game and font, then scan. Suggested targets can be adjusted manually.", "选择游戏与新字体，先扫描；可手动调整自动勾选的目标。"));
         Append(T("Existing font mods are checked before installation. Build-only preserves the test package.", "安装前检查现有字体 Mod 冲突；“仅生成”可保留测试包供检查。"));
     }
@@ -197,6 +198,9 @@ public sealed class MainForm : Form
     public void SelectLanguage(bool value)
     {
         chinese = value; language.Text = T("中文", "English");
+        void ActionText(string name,string en,string zh){var button=Controls.Find(name,true).OfType<Button>().SingleOrDefault();if(button!=null)button.Text=T(en,zh);}
+        ActionText("selectAll","Select all","全选");ActionText("clearAll","Clear","清空");ActionText("cookedTools","IoStore","内联 / IoStore");ActionText("assignFont","Choose font","所选项新字体");protectIcons.Text=T("Protect custom glyphs","保护私用字形 / PUA");
+        if(remember.ContextMenuStrip?.Items.Count>0)remember.ContextMenuStrip.Items[0].Text=T("Reset language mapping","恢复自动识别");
         subtitle.Text = T("Create an Unreal Engine font mod  /  Build, install and restore", "虚幻引擎字体 MOD  /  扫描、生成、安装与还原");
         gameLabel.Text = T("Game path", "游戏目录"); fontLabel.Text = T("Font file", "字体文件");
         languagesLabel.Text = T("Auto-select", "按语言勾选"); targetLabel.Text = T("Path filter", "路径筛选");
@@ -303,8 +307,11 @@ public sealed class MainForm : Form
             Action<string> log = text => ((IProgress<string>)progress).Report(text);
             if (command == "scan")
             {
+                advanced.ForeColor=Red;
                 report = await Task.Run(() => FontService.Scan(root, aesKey, log)); ApplyRecommendations();
                 foreach (var error in report.Errors.Concat(report.ModErrors)) Append(error);
+                if(report.Errors.Any(error=>EncryptionHints.Failure(error,!string.IsNullOrWhiteSpace(aesKey))!=AesPrompt.None)||(string.IsNullOrWhiteSpace(aesKey)&&EncryptionHints.EncryptedArchives(report.Paks).Length>0))
+                {advanced.ForeColor=Color.Khaki;Append(T("Encrypted resources need an AES key. Click AES key above, paste the key for this game build, then scan again. Read failures may also require version/format support.","检测到加密资源，需要 AES 密钥。点击上方“AES 密钥”，输入匹配当前游戏版本的密钥后重新扫描；读取失败也可能与版本或格式支持有关。"));}
                 foreach (var conflict in report.Conflicts.Values.SelectMany(v => v).Distinct()) Append(T("Existing font mod: ", "已有字体 Mod：") + conflict);
                 if (report.IoStoreContainers > 0) Append(T("This game uses IoStore containers; PAK fonts may not be what the runtime loads. Verify replacements in game.", "游戏含 IoStore 容器；PAK 内字体未必是运行时实际引用的资源，替换是否生效请游戏内验证。"));
             }
@@ -330,7 +337,7 @@ public sealed class MainForm : Form
             status.Text = T("Done", "完成");
         }
         catch (UnauthorizedAccessException) { status.Text = T("Access denied", "没有写入权限"); Append(T("Cannot write to this folder. Choose a writable location or run as administrator.", "无法写入该目录，请检查权限；需要时以管理员身份运行。")); }
-        catch (Exception ex) { status.Text = T("Not completed", "操作未完成"); Append(ex.Message); }
+        catch (Exception ex) { status.Text = T("Not completed", "操作未完成"); Append(ex.Message);if(EncryptionHints.Failure(ex.Message,!string.IsNullOrWhiteSpace(aesKey))!=AesPrompt.None){advanced.ForeColor=Color.Khaki;Append(T("Use the AES key button above to enter/check the key for this game build, then scan again.","点击上方“AES 密钥”输入或检查当前游戏版本的密钥，然后重新扫描。"));} }
         finally { busy = false; disabled.ForEach(c => c.Enabled = true); }
     }
     protected override void OnPaint(PaintEventArgs e) { base.OnPaint(e); using var pen = new Pen(Red); e.Graphics.DrawRectangle(pen, 0, 0, ClientSize.Width - 1, ClientSize.Height - 1); }

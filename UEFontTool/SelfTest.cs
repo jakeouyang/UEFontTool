@@ -1,4 +1,4 @@
-﻿namespace UEFontTool;
+namespace UEFontTool;
 
 public static class SelfTest
 {
@@ -84,6 +84,11 @@ public static class SelfTest
             PakTools.Run("pack", "--version", "V11", stage, artifact);
             string encrypted = Path.Combine(root, "encrypted.pak"), dragon = Path.Combine(root, "dragon.pak");
             PakFixture.EncryptIndex(artifact, encrypted, fixtureKey, false);
+            Assert(EncryptionHints.IsEncrypted(encrypted)&&!EncryptionHints.IsEncrypted(artifact),"Distinguish an encrypted PAK header from a readable unencrypted PAK");
+            string tocHint=Path.Combine(root,"encryption-hint.utoc");var hintHeader=new byte[144];"-==--==--==--==-"u8.CopyTo(hintHeader);hintHeader[16]=8;BitConverter.GetBytes(144u).CopyTo(hintHeader,20);hintHeader[80]=2;File.WriteAllBytes(tocHint,hintHeader);
+            Assert(EncryptionHints.IsEncrypted(tocHint),"Recognize encrypted IoStore headers before an AES key is available");hintHeader[0]=0;File.WriteAllBytes(tocHint,hintHeader);
+            Assert(!EncryptionHints.IsEncrypted(tocHint)&&EncryptionHints.Failure("No standard PAK footer; AES alone cannot repair a missing footer.",false)==AesPrompt.None&&EncryptionHints.Failure("failed to fill whole buffer",true)==AesPrompt.None,"Do not mislabel invalid headers or generic format failures as AES errors");
+            Assert(EncryptionHints.Failure("missing encryption key",false)==AesPrompt.Missing&&EncryptionHints.Failure("failed to fill whole buffer",true,true)==AesPrompt.CheckKeyOrFormat&&EncryptionHints.Failure("AES key must be 256 bits.",true)==AesPrompt.InvalidFormat,"Separate missing AES, malformed input and ambiguous encrypted-resource failures");
             Assert(System.Text.Encoding.UTF8.GetString(PakTools.ReadWithKeys(new() { fixtureKey }, "get", encrypted, "font.ufont")) == "test payload", "Read standard AES-encrypted PAK using supplied key");
             Reject(() => PakTools.ReadWithKeys(new() { new byte[32] }, "list", encrypted), "Reject wrong standard PAK AES key");
             PakFixture.EncryptIndex(artifact, dragon, fixtureKey, true);
@@ -122,7 +127,16 @@ public static class SelfTest
             Assert(LanguageMap.Select(scan, Languages.Simplified, false).SetEquals(new[] { "font.ufont" }), "Remember selection overrides automatic language paths");
             LanguageMap.Forget(scan, Languages.Simplified);
             Assert(LanguageMap.Select(scan, Languages.Simplified, false).Contains("b1/Content/Fonts/Font_SC_Regular.ufont"), "Reset restores automatic language detection");
-            using(var guided=new GuidedForm(false)){guided.Show();Application.DoEvents();guided.CheckExperience(scan);Assert(true,"Guided UI: recommendations, unknown languages, hidden selections and explicit replacement fonts");guided.CheckCoverageGuidance();Assert(true,"Coverage guidance identifies missing symbols and beginner options without enabling symbol loss");guided.CheckMoreMenu();Assert(true,"More menu: close, modal detection details and repeated reopening do not dispose the active dropdown");}
+            using(var guided=new GuidedForm(false)){guided.Show();Application.DoEvents();Assert(guided.OpensInEnglish,"Guided UI opens in English by default");guided.CheckExperience(scan);Assert(true,"Guided UI: recommendations, unknown languages, hidden selections and explicit replacement fonts");guided.CheckCoverageGuidance();Assert(true,"Coverage guidance identifies missing symbols and beginner options without enabling symbol loss");guided.CheckMoreMenu();Assert(true,"More menu: close, modal detection details and repeated reopening do not dispose the active dropdown");guided.CheckAesGuidance();Assert(true,"Missing AES has a direct bilingual entry and retains format/version explanations");}
+            string aesGame=Path.Combine(root,"aes-ui-game"),aesPaks=Path.Combine(aesGame,"AesUI","Content","Paks");Directory.CreateDirectory(aesPaks);File.Copy(encrypted,Path.Combine(aesPaks,"encrypted.pak"));
+            Exception? aesFailure=null;
+            using(var aesUi=new GuidedForm(false))
+            {
+                aesUi.Shown+=(_,_)=>aesUi.BeginInvoke(new Action(()=>{try{aesUi.CheckAesEntryRetry(aesGame,Convert.ToHexString(fixtureKey));}catch(Exception ex){aesFailure=ex;}finally{aesUi.Close();}}));
+                Application.Run(aesUi);
+            }
+            if(aesFailure!=null)throw new Exception("AES dialog/rescan regression failed.",aesFailure);
+            Assert(true,"AES dialog masks the key and applies/rescans an encrypted archive without persisting the key");
             using(var input=new FontInput())
             {
                 int edits=0;input.TextChanged+=(_,_)=>edits++;input.Text="test-font.ttf";input.UseSystemPasswordChar=true;
@@ -139,6 +153,7 @@ public static class SelfTest
             }
             using (var ui = new MainForm())
             {
+                Assert(ui.EnglishDefault,"Expert UI opens in English by default");
                 ui.Show(); Application.DoEvents(); ui.CheckLayout(); ui.CheckSelection(scan);
                 IEnumerable<Control> All(Control c) { foreach (Control child in c.Controls) { yield return child; foreach (var grandChild in All(child)) yield return grandChild; } }
                 Assert(All(ui).All(control => control.Right <= ui.ClientSize.Width), "All controls including the export row fit the window width");
