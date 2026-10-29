@@ -44,7 +44,7 @@ Private-use character loss is blocked by default. These characters may be button
 | --- | --- |
 | FFRS / UE5.6 | Five recommended Simplified Chinese targets; external FontFace converted to Inline; full container roundtrip, installation and restoration passed; user confirmed in-game replacement on 2026-10-29 |
 | CodeVein2 / UE5.4 | Three recommended Simplified Chinese targets in an `_P` group; existing Chinese-font mod detected and suspended; roundtrip, installation and restoration passed; user confirmed in-game replacement |
-| PBZ (Phantom Blade Zero) / UE5.7 | Read 66 UCAS partitions directly; extracted 142 font-related assets with zero failures; recognized 54 supported external and 7 inline FontFaces; container build and roundtrip verified, runtime appearance unconfirmed |
+| PBZ (Phantom Blade Zero) / UE5.7 | Read 66 UCAS partitions directly; extracted 142 font-related assets with zero failures; recognized 54 supported external and 7 inline FontFaces; built/installed a complete group for five targets, with roundtrip and hashes verified; user confirmed in-game replacement on 2026-10-29 |
 | Black Myth: Wukong | Custom footer/entry adapter; uncompressed output verified in game on the tested local Steam build |
 | DragonSword: Awakening | Observed v101 AES/masked-index adapter; 54 original plus six standard mod PAKs scanned; one target extracted, built and read back; runtime appearance unconfirmed |
 | Hogwarts Legacy / Lords of the Fallen | Standalone PAK extraction, build and readback verified; this does not establish support for all IoStore resources |
