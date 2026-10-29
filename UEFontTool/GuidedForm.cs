@@ -109,7 +109,7 @@ public sealed partial class GuidedForm : DarkWindow
     public void SelectLanguage(bool chinese){zh=chinese;Localize();}
     internal async Task TestAnalysis(string root,string replacement,string resultFile)
     {
-        game.Text=root;font.Text=replacement;await AnalyzeAsync();
+        game.Text=root;font.Text=replacement;key.Text=Environment.GetEnvironmentVariable("UEFONTTOOL_AES_KEY")??"";await AnalyzeAsync();
         File.WriteAllText(resultFile,JsonSerializer.Serialize(new{Completed=hasAnalyzed,Partial=partial,Problem=problem,Engine=detectedVersion,Standalone=targets.Count(t=>!t.Inline),Embedded=targets.Count(t=>t.Inline),Recommended=targets.Count(t=>t.Selected),Unconfirmed=targets.Count(t=>!t.Engine&&t.Language.Languages==Languages.None),Targets=targets.Select(t=>new{t.Path,t.Inline,t.Selected,t.AlternativeData,t.Language})},FontService.Json));
         using var bitmap=new Bitmap(Width,Height);DrawToBitmap(bitmap,new Rectangle(0,0,Width,Height));bitmap.Save(resultFile+".png");
     }

@@ -53,9 +53,9 @@ public static class CookedFonts
     }
     public static bool SupportedExternal(byte[] data,string version)
     {
-        // Observed UE5.6 unversioned FontFace: property 0 SourceFilename only,
+        // Observed UE5.6/5.7 unversioned FontFace: property 0 SourceFilename only,
         // no object GUID, cooked=true, saveInlineData=false. Other layouts are refused.
-        if(version!="UE5_6"||data.Length<18||data[0]!=0||data[1]!=3)return false;
+        if(version is not ("UE5_6" or "UE5_7")||data.Length<18||data[0]!=0||data[1]!=3)return false;
         int length=BitConverter.ToInt32(data,2);
         if(length==0||length==int.MinValue||Math.Abs((long)length)>32768)return false;
         long end=6+Math.Abs((long)length)*(length<0?2:1);

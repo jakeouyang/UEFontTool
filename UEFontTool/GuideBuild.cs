@@ -4,6 +4,7 @@ namespace UEFontTool;
 
 public static class GuideBuild
 {
+    public static bool NeedsLooseCompanion(ScanReport scan)=>scan.Profile.Equals("ProjectPBZ",StringComparison.OrdinalIgnoreCase)&&scan.IoStoreContainers>0;
     public static void Build(string game,ScanReport scan,GuideTarget[] selected,string defaultFont,string? key,string? version,string name,string destination,bool allowSymbolLoss=false)
     {
         IoStoreFonts.Name(name);
@@ -26,7 +27,15 @@ public static class GuideBuild
                 foreach(var file in Directory.GetFiles(work,name+".*"))File.Copy(file,Path.Combine(ready,Path.GetFileName(file)));
                 if(looseManifest!=null)MergeLoose(looseManifest,Path.Combine(ready,name+".pak"),Path.Combine(destination,"merge"));
             }
-            else if(looseManifest!=null)File.Copy(looseManifest.Artifact,Path.Combine(ready,name+".pak"));
+            else if(looseManifest!=null)
+            {
+                string pak=Path.Combine(ready,name+".pak");File.Copy(looseManifest.Artifact,pak);
+                if(NeedsLooseCompanion(scan))
+                {
+                    if(version==null)throw new InvalidDataException("此游戏的普通字体 MOD 也需要配套 IoStore 容器。请在设置中选择引擎版本后重新检测。 / This game requires an IoStore companion even for standalone fonts. Select the engine version in Settings and detect again.");
+                    CreateLooseCompanion(pak,version,Path.Combine(destination,"companion-input"));
+                }
+            }
             else throw new InvalidDataException("未选择可替换的字体 / No font targets selected.");
             var artifacts=Directory.GetFiles(ready).Select(p=>new{File=Path.GetFileName(p),Sha256=PakTools.HashFile(p)}).ToArray();
             string installFolder=Path.Combine(scan.Paks,"~mods");
@@ -35,6 +44,19 @@ public static class GuideBuild
         }
         catch(InvalidDataException ex) when(ex.Message.Contains("private-use",StringComparison.OrdinalIgnoreCase))
         {throw new InvalidDataException("新字体缺少特殊字符，已停止生成。无需专家模式：取消该字体、换用覆盖更完整的新字体，或勾选“游戏语言”右侧的“允许缺少特殊字符”后重试。允许缺失不会补字或保留原图标。 / Custom glyph loss blocked. No Expert mode required: keep this target unchanged, choose another font, or explicitly allow the loss beside Game language.\r\n"+ex.Message,ex);}
+    }
+    public static void CreateLooseCompanion(string pak,string version,string emptyInput)
+    {
+        CookedFonts.Version(version);IoStoreFonts.Name(Path.GetFileNameWithoutExtension(pak));
+        if(!File.Exists(pak))throw new FileNotFoundException("Standalone font PAK missing.",pak);
+        string utoc=Path.ChangeExtension(pak,".utoc"),ucas=Path.ChangeExtension(pak,".ucas");
+        if(File.Exists(utoc)||File.Exists(ucas))throw new IOException("Companion output already exists.");
+        if(Directory.Exists(emptyInput)&&Directory.EnumerateFileSystemEntries(emptyInput).Any())throw new IOException("Companion input must be empty.");
+        Directory.CreateDirectory(emptyInput);string originalHash=PakTools.HashFile(pak);
+        // retoc creates a real, empty package-store container. It preserves an existing companion PAK.
+        IoStoreFonts.Retoc("to-zen",emptyInput,utoc,"--version",version);
+        if(!File.Exists(utoc)||!File.Exists(ucas)||new FileInfo(utoc).Length==0||new FileInfo(ucas).Length==0||PakTools.HashFile(pak)!=originalHash)throw new InvalidDataException("Standalone companion generation changed the PAK or produced an incomplete group.");
+        IoStoreFonts.Retoc("verify",utoc);
     }
     public static void MergeLoose(BuildManifest loose,string destination,string stage)
     {

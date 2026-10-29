@@ -32,6 +32,9 @@ public static class SelfTest
         byte[] converted=CookedFonts.InlineExternal(native,"UE5_6",testFont);Assert(CookedFonts.Locate(converted)?.Length==testFont.Length&&converted[14]==2,"Convert external FontFace to inline and set LoadingPolicy");
         byte[] corruptExternal=(byte[])native.Clone();corruptExternal[11]=1;Assert(!CookedFonts.SupportedExternal(corruptExternal,"UE5_6"),"Reject unterminated external FontFace source filename");
         Assert(!CookedFonts.SupportedExternal(native,"UE5_4"),"Do not guess external FontFace layouts for another engine version");
+        byte[] wideSource=System.Text.Encoding.Unicode.GetBytes("C:\\Fonts\\Chinese.ttf\0");
+        byte[] wideNative=new byte[wideSource.Length+18];wideNative[1]=3;BitConverter.GetBytes(-wideSource.Length/2).CopyTo(wideNative,2);wideSource.CopyTo(wideNative,6);BitConverter.GetBytes(1).CopyTo(wideNative,wideNative.Length-8);
+        Assert(CookedFonts.SupportedExternal(native,"UE5_7")&&CookedFonts.SupportedExternal(wideNative,"UE5_7")&&CookedFonts.Locate(CookedFonts.InlineExternal(wideNative,"UE5_7",testFont))!=null,"Recognize PBZ UE5.7 external FontFace with ANSI or UTF-16 source names and verify inline conversion");
         byte[] fixtureKey = Enumerable.Range(0, 32).Select(i => (byte)i).ToArray();
         Assert(PakTools.Keys("0X" + Convert.ToHexString(fixtureKey)).Single().SequenceEqual(fixtureKey), "Parse prefixed AES hex input");
         Assert(PakTools.Keys(Convert.ToBase64String(fixtureKey)).Single().SequenceEqual(fixtureKey), "Parse AES Base64 input");
@@ -49,6 +52,7 @@ public static class SelfTest
         Assert(FontService.Recommend("Other/Content/Font/zh-Hans/Regular.ufont", "Other", Languages.Simplified), "Generic zh-Hans folder mapping");
         Assert(!FontService.Recommend("Other/Content/Font/NotoSerifJP-Regular.ufont", "Other", Languages.Simplified), "Do not confuse Japanese with simplified Chinese");
         Assert(!FontService.Recommend("Other/Content/Font/Unknown-Regular.ufont", "Other", Languages.English), "Do not guess English from Latin file names");
+        Assert(GuideHints.Language("ProjectPBZ/Content/PBZContent/UI/Fonts/ZH_FZKaiTi.uasset","ProjectPBZ").Languages==(Languages.Simplified|Languages.Traditional)&&!FontService.Recommend("ProjectPBZ/Content/PBZContent/UI/Fonts/NoHan/ZH_FZKaiTi_NoHan.uasset","ProjectPBZ",Languages.Simplified),"Identify PBZ Chinese targets while leaving NoHan fallback faces unchanged");
         Assert(WukongLoader.ParseLaunchOptions("\"apps\" { \"2358720\" { \"nested\" { \"x\" \"y\" } \"LaunchOptions\" \"-fileopenlog\" } }") == "-fileopenlog", "Read nested Steam launch options");
         Assert(WukongLoader.ParseLaunchOptions("\"2358720\" { \"nested\" {} } \"other\" { \"LaunchOptions\" \"other\" }") == "", "Do not read another game's launch options");
         string root = Path.Combine(Path.GetTempPath(), "UEFontTool-test-" + Guid.NewGuid().ToString("N"));
@@ -69,6 +73,12 @@ public static class SelfTest
             string companionStage=Path.Combine(root,"companion"),companion=Path.Combine(root,"mixed.pak");Directory.CreateDirectory(companionStage);File.WriteAllText(Path.Combine(companionStage,"metadata.bin"),"container metadata");PakTools.Run("pack","--version","V11",companionStage,companion);
             GuideBuild.MergeLoose(mappedBuild,companion,Path.Combine(root,"merge-stage"));
             Assert(System.Text.Encoding.UTF8.GetString(PakTools.Run("get",companion,"metadata.bin"))=="container metadata"&&PakTools.Hash(PakTools.Run("get",companion,"B.ttf"))==PakTools.HashFile(times),"Merge mixed font output without losing companion PAK metadata");
+            string looseContainer=Path.Combine(root,"companion-check","zz_Test_P.pak");Directory.CreateDirectory(Path.GetDirectoryName(looseContainer)!);File.Copy(companion,looseContainer);
+            string looseHash=PakTools.HashFile(looseContainer);
+            GuideBuild.CreateLooseCompanion(looseContainer,"UE5_7",Path.Combine(root,"empty-companion"));
+            Assert(PakTools.HashFile(looseContainer)==looseHash&&File.Exists(Path.ChangeExtension(looseContainer,".utoc"))&&File.Exists(Path.ChangeExtension(looseContainer,".ucas")),"Generate a verified standalone-font IoStore companion without changing any PAK payload");
+            Assert(GuideBuild.NeedsLooseCompanion(new(){Profile="ProjectPBZ",IoStoreContainers=1})&&!GuideBuild.NeedsLooseCompanion(new(){Profile="Other",IoStoreContainers=1})&&!GuideBuild.NeedsLooseCompanion(new(){Profile="ProjectPBZ"}),"Require standalone companions only for the applicable PBZ IoStore profile");
+            Reject(()=>GuideBuild.CreateLooseCompanion(looseContainer,"UE5_7",Path.Combine(root,"empty-companion")),"Refuse overwriting an existing companion container");
             File.WriteAllText(Path.Combine(stage, "font.ufont"), "test payload");
             string artifact = Path.Combine(root, "source.pak");
             PakTools.Run("pack", "--version", "V11", stage, artifact);

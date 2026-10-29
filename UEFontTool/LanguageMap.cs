@@ -23,6 +23,11 @@ public static class LanguageMap
         // Explicit labels only. Supporting Latin glyphs does not make a font an English UI font.
         string value = path.ToLowerInvariant();
         Languages result = Languages.None;
+        // PBZ has Chinese composite fonts with separate NoHan faces and TC fallbacks.
+        // These names identify Chinese targets, not a proven runtime widget or locale branch.
+        if(profile.Equals("ProjectPBZ",StringComparison.OrdinalIgnoreCase)&&value.StartsWith("projectpbz/content/pbzcontent/ui/fonts/")&&
+            new[]{"aagudiankebensong-2","baigetianxingti_small","zh_fzkaiti","zh_zikutangkuangshankaishujf","zktkuangsksj-m1013"}.Contains(Path.GetFileNameWithoutExtension(value)))
+            result|=Languages.Simplified|Languages.Traditional;
         bool Token(string pattern) => Regex.IsMatch(value, @"(?:^|[/_.\-])(?:" + pattern + @")(?:$|[/_.\-])");
         if (value.Contains("simplifiedchinese") || value.Contains("simplified_chinese") || value.Contains("notoserifsc") || value.Contains("notosanssc") || value.Contains("sourcehansanssc") || value.Contains("sourcehanserifsc") || Token("sc|cn|chs|zh[-_]cn|zh[-_]hans|chinese[-_]simplified")) result |= Languages.Simplified;
         if (value.Contains("traditionalchinese") || value.Contains("traditional_chinese") || value.Contains("notoseriftc") || value.Contains("notosanstc") || value.Contains("sourcehansanstc") || value.Contains("sourcehanseriftc") || Token("tc|tw|cht|zh[-_]tw|zh[-_]hant|chinese[-_]traditional")) result |= Languages.Traditional;

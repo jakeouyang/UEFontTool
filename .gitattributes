@@ -3,6 +3,7 @@
 *.md text eol=lf
 *.yml text eol=lf
 *.ps1 text eol=crlf
+*.patch text eol=lf
 *.png binary
 *.jpg binary
 *.ico binary

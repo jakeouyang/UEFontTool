@@ -42,7 +42,7 @@ public sealed partial class GuidedForm
     }
     internal async Task<bool> TestBuildWorkflow(string root,string replacement,string report,bool allowSymbolLoss)
     {
-        game.Text=root;font.Text=replacement;await AnalyzeAsync();allowSymbols.Checked=allowSymbolLoss;installAfterBuild=true;await BuildAsync();
+        game.Text=root;font.Text=replacement;key.Text=Environment.GetEnvironmentVariable("UEFONTTOOL_AES_KEY")??"";await AnalyzeAsync();allowSymbols.Checked=allowSymbolLoss;installAfterBuild=true;await BuildAsync();
         bool success=problem==null&&output!=null;
         File.WriteAllText(report,System.Text.Json.JsonSerializer.Serialize(new{Success=success,Output=output,Message=summary.Text,Error=diagnosticText},FontService.Json));return success;
     }

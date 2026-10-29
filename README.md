@@ -32,7 +32,7 @@ Windows 桌面工具：检测虚幻引擎游戏中的字体，查看语言提示
 
 独立 `.ttf/.otf/.ufont` 通常生成 PAK；IoStore 内的 FontFace 需要修改资源并生成同名 `.pak/.utoc/.ucas`。软件按实际目标选择，不应因为能解包就假设只需要 PAK。输出名称必须以 `_P` 结尾，默认 `zz_UEFontTool_P`，照顾 CodeVein2 等加载命名规则。
 
-使用固定版本 retoc v0.1.5 与 UAssetAPI 1.1.0 完成 IoStore → legacy → FontFace 重写 → IoStore，无需 UE 编辑器。修改字体数组长度、导出长度和偏移，重读字体检查 SHA-256，校验容器后再反向提取比对导出字节。混合目标会合并独立字体到配套 PAK，保留容器元数据。
+使用固定源码提交的 retoc（含本项目 UCAS 分片读取补丁）与 UAssetAPI 1.1.0 完成 IoStore → legacy → FontFace 重写 → IoStore，无需 UE 编辑器。修改字体数组长度、导出长度和偏移，重读字体检查 SHA-256，校验容器后再反向提取比对导出字节。混合目标会合并独立字体到配套 PAK，保留容器元数据。PBZ 配置下，即使只选普通字体，也会附带有效的同名 IoStore 容器，照顾其加载要求。
 
 v0.8 修复 FFRS 只输出 PAK 的问题：该样本的部分 FontFace 原本引用外部 `.ufont`，仅换字节文件不足以覆盖这条加载路径。现在识别实测 UE5.6 未版本化布局，读取原始外部字体进行覆盖分析，设置 Inline 加载策略并把新字体写入 FontFace，再生成完整容器组。只对已验证布局转换，其他布局不会猜测改写。
 
@@ -44,6 +44,7 @@ v0.8 修复 FFRS 只输出 PAK 的问题：该样本的部分 FontFace 原本引
 | --- | --- |
 | FFRS / UE5.6 | 5 个简体推荐目标生成整组容器；外部 FontFace 转 Inline；容器往返、安装与还原通过；用户于 2026-10-29 确认游戏内字体生效 |
 | CodeVein2 / UE5.4 | 3 个简体推荐目标生成 `_P` 容器组；检测并暂存已有中文字体 MOD；往返、安装、还原通过；用户确认游戏内生效 |
+| PBZ（影之刃零）/ UE5.7 | 66 个 UCAS 分片直接读取；142 个字体相关资源提取零失败，识别 54 个支持转换的外部 FontFace 与 7 个内联 FontFace；容器构建和往返已验证，游戏内外观待确认 |
 | 黑神话：悟空 | 自定义 PAK footer/条目布局适配，输出未压缩条目，经当前本机 Steam 样本游戏内验证 |
 | DragonSword: Awakening | 观测到的 v101 AES/混淆索引适配；54 个原版及 6 个标准 Mod PAK 扫描通过，单目标提取、构建和回读通过；未确认游戏内外观 |
 | 霍格沃茨之遗、堕落之主 | 已验证 PAK 内独立字体提取、构建及回读；不等于所有 IoStore 资源均可替换 |
@@ -51,9 +52,9 @@ v0.8 修复 FFRS 只输出 PAK 的问题：该样本的部分 FontFace 原本引
 
 测试安装后，已用 SHA-256 核对两款测试游戏的原有 MOD 恢复。游戏内确认仅覆盖此次样本和选中字体，不代表全部菜单、字幕、图标和游戏版本都已覆盖。
 
-**内联支持并非覆盖所有游戏，也不只限 FFRS。** 已有内联 FontFace 的替换在 CodeVein2（UE5.4）实测；外部 FontFace 转内联目前仅适配 FFRS 所用的特定 UE5.6 布局。其他游戏须同时满足资源可解析、FontFace 布局受支持及容器往返校验通过。引擎版本下拉框只是解析参数列表，不代表各版本的全部字体格式都已兼容。
+**内联支持并非覆盖所有游戏，也不只限 FFRS。** 已有内联 FontFace 的替换在 CodeVein2（UE5.4）实测；外部 FontFace 转内联目前适配 FFRS（UE5.6）与 PBZ（UE5.7）观测到的特定布局，支持其 ANSI / UTF-16 源文件名。其他游戏须同时满足资源可解析、FontFace 布局受支持及容器往返校验通过。引擎版本下拉框只是解析参数列表，不代表各版本的全部字体格式都已兼容。
 
-当前支持有边界的终端 SFNT 字节数组，包括实测四字节零尾部，以及上述 UE5.6 外部 FontFace 布局。尚不支持外部 `.ubulk/.uptnl` 重写、任意原生序列化布局、离线字体图集、TTC 替换、自动图标合并和补字，**不能保证所有 UE4/UE5 游戏兼容**。
+当前支持有边界的终端 SFNT 字节数组，包括实测四字节零尾部，以及上述 UE5.6/5.7 外部 FontFace 布局。尚不支持外部 `.ubulk/.uptnl` 重写、任意原生序列化布局、离线字体图集、TTC 替换、自动图标合并和补字，**不能保证所有 UE4/UE5 游戏兼容**。
 
 详情包含静态导入引用、字体类、来源容器及候选版本；静态引用不证明某个运行时菜单实际使用该字体。retoc 选择的资源也不保证与额外加载器的挂载顺序相同。复合字体属性仅在版本/映射允许解析时导出；专家窗口可选择匹配的 `.usmap`。未解析的字符范围与回退关系仍需人工确认。默认只分析路径包含 `Font` 的封装资源，尚未遍历全游戏 UI 引用。
 
@@ -87,7 +88,7 @@ v0.8 修复 FFRS 只输出 PAK 的问题：该样本的部分 FontFace 原本引
 
 ## 从源码构建与自动发布
 
-需要 Windows x64、.NET 8 SDK、PowerShell 7。
+需要 Windows x64、.NET 8 SDK、PowerShell 7、Rust/rustup 和 Visual C++ 构建工具。脚本固定使用 Rust 1.90.0；运行 Releases 程序不需要这些开发工具。
 
 ```powershell
 git clone git@github.com:jakeouyang/UEFontTool.git
@@ -104,7 +105,7 @@ dotnet build UEFontTool/UEFontTool.csproj -c Release
 dotnet UEFontTool/bin/Release/net8.0-windows/UEFontTool.dll --self-test test-results.txt
 ```
 
-自动测试使用合成包、系统字体和测试密钥，不需要游戏。`main` 推送、PR 或手动 Actions 会构建、测试并上传产物；推送与项目版本一致的 `v*` 标签（如 `v0.8.7`）会发布至 GitHub Releases。流水线使用 `GITHUB_TOKEN`，不需要提交个人令牌或 SSH 私钥。
+自动测试使用合成包、系统字体和测试密钥，不需要游戏。`main` 推送、PR 或手动 Actions 会构建、测试并上传产物；推送与项目版本一致的 `v*` 标签（如 `v0.8.8`）会发布至 GitHub Releases。流水线使用 `GITHUB_TOKEN`，不需要提交个人令牌或 SSH 私钥。
 
 ## 命令行
 

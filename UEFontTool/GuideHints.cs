@@ -12,6 +12,8 @@ public static class GuideHints
         var value=path.ToLowerInvariant();
         var languages=LanguageMap.Infer(path,profile);
         string reasonZh="路径或字体系列标记，实际界面用途仍需验证",reasonEn="Path/family marker; runtime use still needs verification";
+        if(profile.Equals("ProjectPBZ",StringComparison.OrdinalIgnoreCase)&&languages==(Languages.Simplified|Languages.Traditional))
+        {reasonZh="PBZ 中文字体配置；复合字体另有 NoHan / 繁体回退，运行时使用分支仍需确认";reasonEn="PBZ Chinese font profile; composites have separate NoHan/TC fallbacks. Confirm the active runtime branch";}
         if(Regex.IsMatch(value,@"(?:^|/)l10n/zh-hans/") || value.Contains("/zh-cn/"))
         {languages=Languages.Simplified;reasonZh="资源位于简体中文本地化目录";reasonEn="Resource is in a Simplified Chinese localization directory";}
         else if(Regex.IsMatch(value,@"(?:^|/)l10n/zh-hant/") || value.Contains("/zh-tw/"))
@@ -44,7 +46,7 @@ public static class GuideHints
                 if(EngineVersions.Contains(version))return new(version,"游戏程序版本信息："+version,"Game executable version: "+version);
             }
         }
-        string? known=profile.ToUpperInvariant() switch{"FFRS"=>"UE5_6","CODEVEIN2"=>"UE5_4","PHOENIX"=>"UE4_27","LOTF2"=>"UE5_1",_=>null};
+        string? known=profile.ToUpperInvariant() switch{"FFRS"=>"UE5_6","CODEVEIN2"=>"UE5_4","PHOENIX"=>"UE4_27","LOTF2"=>"UE5_1","PROJECTPBZ"=>"UE5_7",_=>null};
         return known!=null?new(known,"使用已验证的游戏配置："+known,"Using a tested game profile: "+known):new(null,"无法自动确定引擎版本，请在“设置”中选择后重新检测","Engine version unknown; select it in Settings and detect again");
     }
     public static readonly string[] EngineVersions={"UE4_26","UE4_27","UE5_0","UE5_1","UE5_2","UE5_3","UE5_4","UE5_5","UE5_6","UE5_7"};

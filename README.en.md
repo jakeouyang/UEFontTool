@@ -32,7 +32,7 @@ Language switching, GitHub and Settings sit in the title bar immediately before 
 
 Standalone `.ttf/.otf/.ufont` targets normally generate a PAK. FontFace resources in IoStore require resource rewriting and matching `.pak/.utoc/.ucas` files. Packaging follows the selected targets; successfully extracting a font does not mean a PAK-only override will work. Output basenames must end in `_P`, default `zz_UEFontTool_P`, covering naming requirements such as CodeVein2's.
 
-Pinned retoc v0.1.5 and UAssetAPI 1.1.0 perform IoStore → legacy → FontFace rewrite → IoStore without Unreal Editor. Font array lengths and export sizes/offsets are updated. Fonts are hash-checked, containers verified and converted back for export-byte comparison. Mixed builds merge loose targets into the companion PAK while retaining container metadata.
+Pinned retoc source with this project's UCAS partition reader and UAssetAPI 1.1.0 perform IoStore → legacy → FontFace rewrite → IoStore without Unreal Editor. Font array lengths and export sizes/offsets are updated. Fonts are hash-checked, containers verified and converted back for export-byte comparison. Mixed builds merge loose targets into the companion PAK while retaining container metadata. The PBZ profile also creates valid matching IoStore companions for standalone-only font mods to meet its loading requirements.
 
 v0.8 fixes FFRS producing only a PAK: some sampled FontFace resources originally reference external `.ufont` data. Replacing that byte file alone did not override this loading path. The tool now recognizes the observed UE5.6 unversioned layout, checks coverage against the original external font, sets Inline loading policy and embeds the replacement before generating the complete container group. Conversion is limited to validated layouts; other native layouts are not guessed.
 
@@ -44,6 +44,7 @@ Private-use character loss is blocked by default. These characters may be button
 | --- | --- |
 | FFRS / UE5.6 | Five recommended Simplified Chinese targets; external FontFace converted to Inline; full container roundtrip, installation and restoration passed; user confirmed in-game replacement on 2026-10-29 |
 | CodeVein2 / UE5.4 | Three recommended Simplified Chinese targets in an `_P` group; existing Chinese-font mod detected and suspended; roundtrip, installation and restoration passed; user confirmed in-game replacement |
+| PBZ (Phantom Blade Zero) / UE5.7 | Read 66 UCAS partitions directly; extracted 142 font-related assets with zero failures; recognized 54 supported external and 7 inline FontFaces; container build and roundtrip verified, runtime appearance unconfirmed |
 | Black Myth: Wukong | Custom footer/entry adapter; uncompressed output verified in game on the tested local Steam build |
 | DragonSword: Awakening | Observed v101 AES/masked-index adapter; 54 original plus six standard mod PAKs scanned; one target extracted, built and read back; runtime appearance unconfirmed |
 | Hogwarts Legacy / Lords of the Fallen | Standalone PAK extraction, build and readback verified; this does not establish support for all IoStore resources |
@@ -51,9 +52,9 @@ Private-use character loss is blocked by default. These characters may be button
 
 Original mods in both test games were restored and checked against SHA-256 snapshots after testing. Runtime confirmations cover the sampled builds and selected fonts, not every menu, subtitle, icon or game version.
 
-**Inline support is neither universal nor FFRS-only.** Existing inline FontFace rewriting was verified in CodeVein2 (UE5.4); external-to-inline conversion currently targets only the observed FFRS UE5.6 layout. Other games must have parseable resources, a supported native layout and a verified container roundtrip. The engine-version dropdown lists parser parameters, not certified support for every font format in those versions.
+**Inline support is neither universal nor FFRS-only.** Existing inline FontFace rewriting was verified in CodeVein2 (UE5.4); external-to-inline conversion targets the observed FFRS UE5.6 and PBZ UE5.7 layouts, including their ANSI/UTF-16 source filenames. Other games must have parseable resources, a supported native layout and a verified container roundtrip. The engine-version dropdown lists parser parameters, not certified support for every font format in those versions.
 
-Supported layouts include bounded terminal SFNT arrays, the observed four-byte zero suffix, and the UE5.6 external FontFace layout above. External `.ubulk/.uptnl` rewriting, arbitrary native serialization layouts, offline atlases, TTC replacement, automatic icon merging and missing-glyph generation remain unsupported. **Universal UE4/UE5 compatibility is not guaranteed.**
+Supported layouts include bounded terminal SFNT arrays, the observed four-byte zero suffix, and the UE5.6/5.7 external FontFace layouts above. External `.ubulk/.uptnl` rewriting, arbitrary native serialization layouts, offline atlases, TTC replacement, automatic icon merging and missing-glyph generation remain unsupported. **Universal UE4/UE5 compatibility is not guaranteed.**
 
 Details include static imports, font classes and selected/candidate containers. Static references do not prove runtime widget use; retoc's selected source does not guarantee an extra loader's mount order. Composite properties are exported when version/mappings permit; the expert window accepts a matching `.usmap`. Unresolved character ranges and fallback relationships still need review. Default embedded extraction filters paths containing `Font`; full-game UI reference traversal is not implemented.
 
@@ -87,7 +88,7 @@ Oodle is not redistributed. If required, provide a legally obtained compatible `
 
 ## Build from source and release automation
 
-Requires Windows x64, .NET 8 SDK and PowerShell 7.
+Requires Windows x64, .NET 8 SDK, PowerShell 7, Rust/rustup and Visual C++ build tools. The build pins Rust 1.90.0; release users do not need development tools.
 
 ```powershell
 git clone git@github.com:jakeouyang/UEFontTool.git
@@ -104,7 +105,7 @@ dotnet build UEFontTool/UEFontTool.csproj -c Release
 dotnet UEFontTool/bin/Release/net8.0-windows/UEFontTool.dll --self-test test-results.txt
 ```
 
-Automated tests use synthetic archives, system fonts and test-only keys; no game is needed. Main pushes, PRs and manual Actions runs build/test and upload artifacts. A `v*` tag matching the project version, such as `v0.8.7`, publishes to GitHub Releases. The workflow uses `GITHUB_TOKEN`; personal tokens and SSH private keys do not belong in source control.
+Automated tests use synthetic archives, system fonts and test-only keys; no game is needed. Main pushes, PRs and manual Actions runs build/test and upload artifacts. A `v*` tag matching the project version, such as `v0.8.8`, publishes to GitHub Releases. The workflow uses `GITHUB_TOKEN`; personal tokens and SSH private keys do not belong in source control.
 
 ## Command line
 

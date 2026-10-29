@@ -1,5 +1,14 @@
 # Changelog / 更新记录
 
+## v0.8.8
+
+- Fix PBZ's split-container read failure with a source-pinned, tested retoc partition reader: read all 66 UCAS partitions without merging/copying the game archives.
+- Recognize the PBZ UE5.7 profile and its bounded external FontFace layout, including ANSI/UTF-16 source names; convert selected faces to inline and verify the complete PAK/UTOC/UCAS roundtrip.
+- Create valid IoStore companions for standalone-only PBZ font builds while checking that their PAK payload remains unchanged.
+- Surface five known PBZ Chinese targets as shared Chinese candidates; leave NoHan fallback faces unselected and retain the missing-symbol guard.
+- Verified 142 extracted font-related assets with zero failures, 54 supported external faces and 7 inline faces. In-game appearance remains unconfirmed; private-use loss protection remains enabled by default.
+- 修复 PBZ 多 UCAS 分片读取；补齐其 UE5.7 外部 FontFace 转内联与普通字体配套容器输出；构建和往返校验通过，游戏内外观待确认，不自动关闭缺字保护。
+
 ## v0.8.7
 
 - Replace the executable, window-title and expert-mode icons with the supplied UEF artwork; include ICO sizes from 16 to 256 pixels.
