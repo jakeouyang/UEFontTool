@@ -36,7 +36,7 @@ The supplied application artwork is project branding; it does not grant rights t
 
 ## v0.6 dependencies
 
-- retoc (MIT), pinned source commit https://github.com/trumank/retoc/tree/885a8dae740cb1ce1e41ff2e74f67f9f0c118237 . Since v0.8.8 the build verifies the source archive SHA-256, applies `scripts/retoc-partitions.patch`, tests partition boundaries and builds with Rust 1.90.0 and the upstream Cargo.lock. The modification adds direct `_sN.ucas` partition reads without merging game files. Releases include the modified tools/retoc.exe and the upstream retoc-LICENSE; the patch is available in this repository under MIT.
+- retoc (MIT), pinned source commit https://github.com/trumank/retoc/tree/885a8dae740cb1ce1e41ff2e74f67f9f0c118237 . Since v0.8.9 the build verifies the source archive SHA-256, applies `scripts/retoc-partitions.patch`, tests partition boundaries and builds with Rust 1.90.0 and the upstream Cargo.lock. The modification adds direct `_sN.ucas` partition reads without merging game files. Releases include the modified tools/retoc.exe and the upstream retoc-LICENSE; the patch is available in this repository under MIT.
 - UAssetAPI 1.1.0 (MIT): https://github.com/atenfyr/UAssetAPI . Used for package imports, exports and reserialization. Includes Newtonsoft.Json 13.0.3 (MIT) and ZstdSharp.Port 0.8.1 (MIT); their license texts are in docs/licenses.
 - ZenTools-UE4 (https://github.com/WistfulHopes/ZenTools-UE4) was evaluated as an extraction alternative; it is not bundled or invoked. retoc supplies both conversion directions.
 

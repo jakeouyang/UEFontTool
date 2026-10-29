@@ -1,8 +1,9 @@
 # Changelog / 更新记录
 
-## v0.8.8
+## v0.8.9
 
 - Fix PBZ's split-container read failure with a source-pinned, tested retoc partition reader: read all 66 UCAS partitions without merging/copying the game archives.
+- Isolate the downloaded source before applying the patch and assert that the reader exists; prevent Git from silently skipping patches inside the application's repository. v0.8.8 was a local test build, not a public release.
 - Recognize the PBZ UE5.7 profile and its bounded external FontFace layout, including ANSI/UTF-16 source names; convert selected faces to inline and verify the complete PAK/UTOC/UCAS roundtrip.
 - Create valid IoStore companions for standalone-only PBZ font builds while checking that their PAK payload remains unchanged.
 - Surface five known PBZ Chinese targets as shared Chinese candidates; leave NoHan fallback faces unselected and retain the missing-symbol guard.

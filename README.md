@@ -105,7 +105,7 @@ dotnet build UEFontTool/UEFontTool.csproj -c Release
 dotnet UEFontTool/bin/Release/net8.0-windows/UEFontTool.dll --self-test test-results.txt
 ```
 
-自动测试使用合成包、系统字体和测试密钥，不需要游戏。`main` 推送、PR 或手动 Actions 会构建、测试并上传产物；推送与项目版本一致的 `v*` 标签（如 `v0.8.8`）会发布至 GitHub Releases。流水线使用 `GITHUB_TOKEN`，不需要提交个人令牌或 SSH 私钥。
+自动测试使用合成包、系统字体和测试密钥，不需要游戏。`main` 推送、PR 或手动 Actions 会构建、测试并上传产物；推送与项目版本一致的 `v*` 标签（如 `v0.8.9`）会发布至 GitHub Releases。流水线使用 `GITHUB_TOKEN`，不需要提交个人令牌或 SSH 私钥。
 
 ## 命令行
 
